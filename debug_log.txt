@@ -1,0 +1,5 @@
+create_patient called. Payload: patient_code='1234' id=None psychologist_id=None psychologist_name='Tu Psicólogo' psychologist_schedule='Lunes a Viernes, 9:00 - 18:00' clinical_summary=None created_at=datetime.datetime(2026, 1, 12, 11, 57, 35, 250725)
+psychologist_id in payload: None
+Fallback used. Assigned to: Super Admin (ID: 1)
+create_session called with patient_id=1 duration='30 min' description='Sesión de Chat' notes='genial' chat_snapshot=[{'text': 'Eso suena desafiante. ¿Podrías decirme más sobre qué aspectos específicos de la presentación causan más preocupación?', 'sender': 'therapist', 'timestamp': '12/1/2026, 11:59:15'}, {'text': 'Que bien', 'sender': 'patient', 'timestamp': '12/1/2026, 11:59:24'}] id=None date=datetime.datetime(2026, 1, 12, 11, 59, 39, 155286)\ncreate_patient called. Payload: patient_code='9876' psychologist_id=2 id=None psychologist_name='Tu Psicólogo' psychologist_schedule='Lunes a Viernes, 9:00 - 18:00' clinical_summary=None created_at=datetime.datetime(2026, 1, 12, 12, 1, 21, 807829)
+psychologist_id in payload: 2
