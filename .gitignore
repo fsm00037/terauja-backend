@@ -1,0 +1,8 @@
+# Ignore venv
+.venv
+
+venv
+
+
+# Ignore database files
+*.db
