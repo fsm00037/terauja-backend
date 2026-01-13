@@ -96,3 +96,31 @@ Contraseña: JMreIblh0-s
 Por favor cambia tu contraseña al ingresar.
 ===========================================
 
+
+===========================================
+To: fsmaroto@ujaen.es
+Subject: Bienvenido a TeraUJA - Tus Credenciales
+-------------------------------------------
+Hola FAbian,
+
+Se ha creado tu cuenta profesional.
+Usuario: fsmaroto@ujaen.es
+Contraseña: HzV1_lbsSOA
+
+Por favor cambia tu contraseña al ingresar.
+===========================================
+
+
+===========================================
+To: fsmaroto@ujaen.es
+Subject: Bienvenido a TeraUJA - Tus Credenciales
+-------------------------------------------
+Hola Fabian Suarez,
+
+Se ha creado tu cuenta profesional.
+Usuario: fsmaroto@ujaen.es
+Contraseña: 0SLqZ1DCIgU
+
+Por favor cambia tu contraseña al ingresar.
+===========================================
+

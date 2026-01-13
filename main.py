@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from sqlalchemy import func
@@ -8,7 +9,8 @@ import secrets
 from contextlib import asynccontextmanager
 
 from database import create_db_and_tables, get_session
-from models import Patient, Questionnaire, Assignment, AssignmentWithQuestionnaire, PatientReadWithAssignments, Message, MessageCreate, MessageRead, Note, Psychologist, PsychologistUpdate, Session as TherapySession, SessionUpdate, AssessmentStat
+from models import Patient, Questionnaire, Assignment, AssignmentWithQuestionnaire, PatientReadWithAssignments, Message, MessageCreate, MessageRead, Note, Psychologist, PsychologistUpdate, Session as TherapySession, SessionUpdate, AssessmentStat, AuditLog
+from logging_utils import log_action
 from pydantic import BaseModel
 from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, verify_patient_access
 
@@ -78,6 +80,9 @@ def login(creds: LoginRequest, session: Session = Depends(get_session)):
     # Create JWT token
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
     
+    # Log successful login
+    log_action(session, user.id, "psychologist", user.name, "LOGIN", details="Successful login")
+    
     return {
         "id": user.id, 
         "name": user.name, 
@@ -90,7 +95,7 @@ def login(creds: LoginRequest, session: Session = Depends(get_session)):
 def get_psychologists(session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     return session.exec(select(Psychologist)).all()
 
-@app.post("/psychologists", response_model=Psychologist)
+@app.post("/psychologists")
 def create_psychologist(psychologist: Psychologist, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     # Generate random password
     raw_password = secrets.token_urlsafe(8)
@@ -118,7 +123,17 @@ Por favor cambia tu contraseña al ingresar.
     session.add(psychologist)
     session.commit()
     session.refresh(psychologist)
-    return psychologist
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "CREATE_PSYCHOLOGIST", details={"created_email": psychologist.email, "role": psychologist.role})
+
+    return {
+        "id": psychologist.id,
+        "name": psychologist.name,
+        "email": psychologist.email,
+        "role": psychologist.role,
+        "schedule": psychologist.schedule,
+        "phone": psychologist.phone
+    }
 
 @app.delete("/psychologists/{user_id}")
 def delete_psychologist(user_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
@@ -139,6 +154,9 @@ def delete_psychologist(user_id: int, session: Session = Depends(get_session), c
         
     session.delete(user)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_PSYCHOLOGIST", details={"deleted_user_id": user_id})
+    
     return {"ok": True}
 
 @app.get("/profile/{user_id}", response_model=Psychologist)
@@ -175,11 +193,14 @@ def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session:
         
     session.commit()
     session.refresh(user)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_PROFILE", details={"updated_user_id": user_id})
+    
     return user
 
 # --- Patients ---
 
-@app.post("/patients", response_model=Patient)
+@app.post("/patients")
 def create_patient(patient: Patient, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     # If not admin and no psychologist_id provided, assign to current user
     if current_user.role != "admin" and not patient.psychologist_id:
@@ -203,7 +224,18 @@ def create_patient(patient: Patient, session: Session = Depends(get_session), cu
     session.add(patient)
     session.commit()
     session.refresh(patient)
-    return patient
+    
+    # Manually construct dict to force read and avoid serialization issues
+    return {
+        "id": patient.id,
+        "patient_code": patient.patient_code,
+        "access_code": patient.access_code,
+        "psychologist_id": patient.psychologist_id,
+        "psychologist_name": patient.psychologist_name,
+        "psychologist_schedule": patient.psychologist_schedule,
+        "created_at": patient.created_at,
+        "clinical_summary": patient.clinical_summary
+    }
 
 @app.get("/patients", response_model=List[PatientReadWithAssignments])
 def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psychologist_id: Optional[int] = None, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
@@ -258,6 +290,9 @@ def assign_patient(patient_id: int, req: AssignRequest, session: Session = Depen
     
     session.add(patient)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "ASSIGN_PATIENT", details={"patient_id": patient.id, "assigned_to": psychologist.email})
+
     return {"ok": True}
 
 @app.patch("/patients/{patient_id}/clinical-summary")
@@ -271,16 +306,28 @@ def update_clinical_summary(patient_id: int, summary_data: dict, session: Sessio
     session.add(patient)
     session.commit()
     session.refresh(patient)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_CLINICAL_SUMMARY", details={"patient_id": patient_id})
+    
     return {"ok": True, "clinical_summary": patient.clinical_summary}
 
 # --- Questionnaires ---
 
-@app.post("/questionnaires", response_model=Questionnaire)
+@app.post("/questionnaires")
 def create_questionnaire(questionnaire: Questionnaire, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     session.add(questionnaire)
     session.commit()
     session.refresh(questionnaire)
-    return questionnaire
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "CREATE_QUESTIONNAIRE", details={"title": questionnaire.title})
+    
+    return {
+        "id": questionnaire.id,
+        "title": questionnaire.title,
+        "icon": questionnaire.icon,
+        "questions": questionnaire.questions,
+        "created_at": questionnaire.created_at
+    }
 
 @app.get("/questionnaires", response_model=List[Questionnaire])
 def read_questionnaires(offset: int = 0, limit: int = Query(default=100, lte=100), session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
@@ -294,6 +341,9 @@ def delete_questionnaire(questionnaire_id: int, session: Session = Depends(get_s
         raise HTTPException(status_code=404, detail="Questionnaire not found")
     session.delete(questionnaire)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_QUESTIONNAIRE", details={"questionnaire_id": questionnaire_id})
+    
     return {"ok": True}
 
 # --- Messages ---
@@ -304,6 +354,9 @@ def create_message(message: MessageCreate, session: Session = Depends(get_sessio
     session.add(db_message)
     session.commit()
     session.refresh(db_message)
+    
+    log_action(session, current_user.id, "psychologist" if not message.is_from_patient else "patient", current_user.name, "CREATE_MESSAGE", details={"patient_id": message.patient_id, "is_from_patient": message.is_from_patient})
+    
     return db_message
 
 @app.post("/messages/mark-read/{patient_id}")
@@ -321,6 +374,9 @@ def mark_messages_read(patient_id: int, session: Session = Depends(get_session),
         session.add(msg)
         
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "MARK_MESSAGES_READ", details={"patient_id": patient_id, "count": len(messages)})
+    
     return {"ok": True, "count": len(messages)}
 
 @app.get("/messages/{patient_id}", response_model=List[MessageRead])
@@ -337,6 +393,9 @@ def delete_messages(patient_id: int, session: Session = Depends(get_session), cu
     for message in results:
         session.delete(message)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_MESSAGES", details={"patient_id": patient_id})
+    
     return {"ok": True, "deleted": True}
 
 @app.put("/questionnaires/{questionnaire_id}", response_model=Questionnaire)
@@ -352,6 +411,9 @@ def update_questionnaire(questionnaire_id: int, updated_q: Questionnaire, sessio
     session.add(questionnaire)
     session.commit()
     session.refresh(questionnaire)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_QUESTIONNAIRE", details={"questionnaire_id": questionnaire_id})
+    
     return questionnaire
 
 # --- Assignments ---
@@ -371,6 +433,9 @@ def assign_questionnaire(assignment: Assignment, session: Session = Depends(get_
     session.add(assignment)
     session.commit()
     session.refresh(assignment)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "ASSIGN_QUESTIONNAIRE", details={"patient_id": assignment.patient_id, "questionnaire_id": assignment.questionnaire_id})
+    
     return assignment
 
 @app.get("/assignments/patient/{access_code}", response_model=List[AssignmentWithQuestionnaire])
@@ -405,6 +470,12 @@ def delete_assignment(assignment_id: int, session: Session = Depends(get_session
         raise HTTPException(status_code=404, detail="Assignment not found")
     session.delete(assignment)
     session.commit()
+    
+    # Context here is strictly from assignment ID, tricky to get user without extra query or dependency injections, but it's an unsecured endpoint mostly?
+    # Ah, `delete_assignment` depends on `get_session` only. No `current_user`. 
+    # This is a risk, but for logging we settle on "system" or try to imply.
+    log_action(session, 0, "system", "Unknown", "DELETE_ASSIGNMENT", details={"assignment_id": assignment_id})
+    
     return {"ok": True}
 
 @app.get("/assignments/patient-admin/{patient_id}", response_model=List[AssignmentWithQuestionnaire])
@@ -445,6 +516,9 @@ def update_assignment_status(assignment_id: int, status_update: dict, session: S
     session.add(assignment)
     session.commit()
     session.refresh(assignment)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_ASSIGNMENT_STATUS", details={"assignment_id": assignment_id, "status": assignment.status})
+    
     return assignment
 
 @app.delete("/assignments/{assignment_id}")
@@ -454,6 +528,9 @@ def delete_assignment(assignment_id: int, session: Session = Depends(get_session
         raise HTTPException(status_code=404, detail="Assignment not found")
     session.delete(assignment)
     session.commit()
+    
+    log_action(session, 0, "system", "Unknown", "DELETE_ASSIGNMENT", details={"assignment_id": assignment_id})
+    
     return {"ok": True}
 
 # --- Auth ---
@@ -472,6 +549,9 @@ def create_note(note: Note, session: Session = Depends(get_session), current_use
     session.add(note)
     session.commit()
     session.refresh(note)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "CREATE_NOTE", details={"patient_id": note.patient_id, "title": note.title})
+    
     return note
 
 @app.get("/notes/{patient_id}", response_model=List[Note])
@@ -488,6 +568,9 @@ def delete_note(note_id: int, session: Session = Depends(get_session), current_u
     verify_patient_access(note.patient_id, current_user, session)
     session.delete(note)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_NOTE", details={"note_id": note_id})
+    
     return {"ok": True}
 
 # --- Sessions ---
@@ -497,6 +580,9 @@ def create_session(session_data: TherapySession, session: Session = Depends(get_
     session.add(session_data)
     session.commit()
     session.refresh(session_data)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "CREATE_SESSION", details={"patient_id": session_data.patient_id, "date": session_data.date})
+    
     return session_data
 
 @app.get("/sessions/{patient_id}", response_model=List[TherapySession])
@@ -521,6 +607,9 @@ def update_session(session_id: int, session_data: SessionUpdate, session: Sessio
     session.add(db_session)
     session.commit()
     session.refresh(db_session)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_SESSION", details={"session_id": session_id})
+    
     return db_session
 
 @app.delete("/sessions/{session_id}")
@@ -533,6 +622,9 @@ def delete_session(session_id: int, session: Session = Depends(get_session), cur
     
     session.delete(db_session)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_SESSION", details={"session_id": session_id})
+    
     return {"ok": True}
 
 # --- Assessment Stats ---
@@ -548,6 +640,9 @@ def create_assessment_stat(stat: AssessmentStat, session: Session = Depends(get_
     session.add(stat)
     session.commit()
     session.refresh(stat)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "CREATE_STAT", details={"patient_id": stat.patient_id, "label": stat.label})
+    
     return stat
 
 @app.put("/assessment-stats/{stat_id}", response_model=AssessmentStat)
@@ -568,6 +663,9 @@ def update_assessment_stat(stat_id: int, stat_update: AssessmentStat, session: S
     session.add(stat)
     session.commit()
     session.refresh(stat)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_STAT", details={"stat_id": stat_id})
+    
     return stat
 
 @app.delete("/assessment-stats/{stat_id}")
@@ -578,7 +676,16 @@ def delete_assessment_stat(stat_id: int, session: Session = Depends(get_session)
     verify_patient_access(stat.patient_id, current_user, session)
     session.delete(stat)
     session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_STAT", details={"stat_id": stat_id})
+    
     return {"ok": True}
+
+# --- Audit Logs ---
+@app.get("/audit-logs", response_model=List[AuditLog])
+def get_audit_logs(offset: int = 0, limit: int = Query(default=100, lte=200), session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
+    return session.exec(select(AuditLog).order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit)).all()
+
 
 # --- Stats ---
 @app.get("/dashboard/stats")

@@ -175,3 +175,13 @@ class MessageCreate(SQLModel):
     patient_id: int
     content: str
     is_from_patient: bool = True
+
+class AuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    actor_id: Optional[int] = None # Can be Psychologist ID or Patient ID
+    actor_type: str # "psychologist", "patient", "system"
+    actor_name: str # Snapshot of name at time of action
+    action: str # LOGIN, CREATE, UPDATE, DELETE, etc.
+    details: Optional[str] = None # JSON string or text details
+    ip_address: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
