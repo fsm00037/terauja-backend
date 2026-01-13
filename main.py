@@ -597,9 +597,9 @@ def get_dashboard_stats(psychologist_id: Optional[int] = None, session: Session 
             q = session.get(Questionnaire, assign.questionnaire_id)
             if q: q_title = q.title
         
-        action = f"Assigned {q_title}"
+        action = f"Asignada {q_title}"
         if assign.status == "completed":
-            action = f"Completado {q_title}"
+            action = f"EMA completada: {q_title}"
             
         activity_log.append({
             "type": "assignment",
