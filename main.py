@@ -643,3 +643,22 @@ if __name__ == "__main__":
         print(f"Registered route: {route.path}")
         
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+
+
+# --- AI / LLM ---
+from llm_service import generate_response_options
+
+class ChatContext(BaseModel):
+    messages: List[dict] # [{"role": "user", "content": "..."}, ...]
+
+@app.post("/chat/recommendations")
+def get_chat_recommendations(context: ChatContext, session: Session = Depends(get_session)):
+    try:
+        # Check if llm_service is configured (optional check)
+        # Assuming generate_response_options handles errors gracefully
+        recommendations = generate_response_options(context.messages)
+        return {"recommendations": recommendations}
+    except Exception as e:
+        print(f"Error getting recommendations: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate recommendations")
+
