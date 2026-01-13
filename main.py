@@ -599,7 +599,7 @@ def get_dashboard_stats(psychologist_id: Optional[int] = None, session: Session 
         
         action = f"Assigned {q_title}"
         if assign.status == "completed":
-            action = f"Completed {q_title}"
+            action = f"Completado {q_title}"
             
         activity_log.append({
             "type": "assignment",

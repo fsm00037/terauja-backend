@@ -26,3 +26,17 @@ Contraseña: aIssPuq9cNE
 Por favor cambia tu contraseña al ingresar.
 ===========================================
 
+
+===========================================
+To: jaime@terauja.com
+Subject: Bienvenido a TeraUJA - Tus Credenciales
+-------------------------------------------
+Hola jaime,
+
+Se ha creado tu cuenta profesional.
+Usuario: jaime@terauja.com
+Contraseña: t10qIRLtN1Q
+
+Por favor cambia tu contraseña al ingresar.
+===========================================
+

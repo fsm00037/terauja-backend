@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+print("------------------------------------------------")
+print("API KEY",os.getenv("OPENAI_API_KEY_TERAUJA"))
 
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),  # tu API Key
+    api_key=os.getenv("OPENAI_API_KEY_TERAUJA"),  # tu API Key
     base_url="http://ada01.ujaen.es:8080/v1"
 )
 
