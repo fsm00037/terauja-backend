@@ -12,3 +12,17 @@ Contraseña: JfYq_GX-LIQ
 Por favor cambia tu contraseña al ingresar.
 ===========================================
 
+
+===========================================
+To: ana@terauja.com
+Subject: Bienvenido a TeraUJA - Tus Credenciales
+-------------------------------------------
+Hola Ana,
+
+Se ha creado tu cuenta profesional.
+Usuario: ana@terauja.com
+Contraseña: aIssPuq9cNE
+
+Por favor cambia tu contraseña al ingresar.
+===========================================
+

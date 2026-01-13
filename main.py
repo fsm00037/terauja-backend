@@ -584,7 +584,7 @@ def get_dashboard_stats(psychologist_id: Optional[int] = None, session: Session 
             "type": "message",
             "patient": p_name,
             "patient_id": p.id if p else None,
-            "action": "New message received" if msg.is_from_patient else "Message sent",
+            "action": "Nuevo mensaje recibido" if msg.is_from_patient else "Nuevo mensaje enviado",
             "time": msg.created_at,
             "timestamp": msg.created_at.timestamp()
         })
