@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from database import create_db_and_tables, get_session
 from models import Patient, Questionnaire, Assignment, AssignmentWithQuestionnaire, PatientReadWithAssignments, Message, MessageCreate, MessageRead, Note, Psychologist, PsychologistUpdate, Session as TherapySession, SessionUpdate, AssessmentStat
 from pydantic import BaseModel
+from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, verify_patient_access
 
 class LoginRequest(BaseModel):
     email: str
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI):
             super_admin = Psychologist(
                 name="Super Admin",
                 email="admin@terauja.com",
-                password="admin", # Change in production
+                password=hash_password("admin"),  # Hashed password
                 role="admin",
                 schedule="Siempre Disponible"
             )
@@ -71,19 +72,29 @@ def read_root():
 @app.post("/login")
 def login(creds: LoginRequest, session: Session = Depends(get_session)):
     user = session.exec(select(Psychologist).where(Psychologist.email == creds.email)).first()
-    if not user or user.password != creds.password:
+    if not user or not verify_password(creds.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"id": user.id, "name": user.name, "role": user.role, "email": user.email}
+    
+    # Create JWT token
+    access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    
+    return {
+        "id": user.id, 
+        "name": user.name, 
+        "role": user.role, 
+        "email": user.email,
+        "access_token": access_token
+    }
 
 @app.get("/psychologists", response_model=List[Psychologist])
-def get_psychologists(session: Session = Depends(get_session)):
+def get_psychologists(session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     return session.exec(select(Psychologist)).all()
 
 @app.post("/psychologists", response_model=Psychologist)
-def create_psychologist(psychologist: Psychologist, session: Session = Depends(get_session)):
+def create_psychologist(psychologist: Psychologist, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     # Generate random password
     raw_password = secrets.token_urlsafe(8)
-    psychologist.password = raw_password # in real app, hash this!
+    psychologist.password = hash_password(raw_password)  # Hash the password
     
     # Simulate Email (Write to file for user visibility)
     email_content = f"""
@@ -110,7 +121,7 @@ Por favor cambia tu contraseña al ingresar.
     return psychologist
 
 @app.delete("/psychologists/{user_id}")
-def delete_psychologist(user_id: int, session: Session = Depends(get_session)):
+def delete_psychologist(user_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     user = session.get(Psychologist, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -131,14 +142,20 @@ def delete_psychologist(user_id: int, session: Session = Depends(get_session)):
     return {"ok": True}
 
 @app.get("/profile/{user_id}", response_model=Psychologist)
-def get_user_profile(user_id: int, session: Session = Depends(get_session)):
+def get_user_profile(user_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    # Users can only access their own profile unless admin
+    if current_user.role != "admin" and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
     user = session.get(Psychologist, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 @app.put("/profile/{user_id}", response_model=Psychologist)
-def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session: Session = Depends(get_session)):
+def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    # Users can only update their own profile unless admin
+    if current_user.role != "admin" and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
     user = session.get(Psychologist, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -163,31 +180,25 @@ def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session:
 # --- Patients ---
 
 @app.post("/patients", response_model=Patient)
-def create_patient(patient: Patient, session: Session = Depends(get_session)):
-    # DEBUG LOGGING
-    with open("debug_log.txt", "a") as f:
-        f.write(f"create_patient called. Payload: {patient}\n")
-        f.write(f"psychologist_id in payload: {patient.psychologist_id}\n")
+def create_patient(patient: Patient, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    # If not admin and no psychologist_id provided, assign to current user
+    if current_user.role != "admin" and not patient.psychologist_id:
+        patient.psychologist_id = current_user.id
 
     if not patient.access_code:
         patient.access_code = generate_access_code()
-    # patient_code is expected in the input
     
-    # If psychologist_id is provided (e.g. from frontend), verify it exists
+    # If psychologist_id is provided, verify it exists
     if patient.psychologist_id:
         psych = session.get(Psychologist, patient.psychologist_id)
         if psych:
             patient.psychologist_name = psych.name
             patient.psychologist_schedule = psych.schedule
     else:
-        # Fallback: Try to find a default psychologist (e.g. Admin) or leave empty logic later
-        default_psych = session.exec(select(Psychologist)).first()
-        if default_psych:
-            patient.psychologist_id = default_psych.id
-            patient.psychologist_name = default_psych.name
-            patient.psychologist_schedule = default_psych.schedule
-            with open("debug_log.txt", "a") as f:
-                f.write(f"Fallback used. Assigned to: {default_psych.name} (ID: {default_psych.id})\n")
+        # Fallback: assign to current user
+        patient.psychologist_id = current_user.id
+        patient.psychologist_name = current_user.name
+        patient.psychologist_schedule = current_user.schedule
 
     session.add(patient)
     session.commit()
@@ -195,9 +206,13 @@ def create_patient(patient: Patient, session: Session = Depends(get_session)):
     return patient
 
 @app.get("/patients", response_model=List[PatientReadWithAssignments])
-def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psychologist_id: Optional[int] = None, session: Session = Depends(get_session)):
+def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psychologist_id: Optional[int] = None, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     query = select(Patient).options(selectinload(Patient.assignments).selectinload(Assignment.questionnaire))
-    if psychologist_id:
+    
+    # Non-admin users can only see their own patients
+    if current_user.role != "admin":
+        query = query.where(Patient.psychologist_id == current_user.id)
+    elif psychologist_id:
         query = query.where(Patient.psychologist_id == psychologist_id)
     
     patients = session.exec(query.offset(offset).limit(limit)).all()
@@ -230,7 +245,7 @@ def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psy
     return results
 
 @app.patch("/patients/{patient_id}/assign")
-def assign_patient(patient_id: int, req: AssignRequest, session: Session = Depends(get_session)):
+def assign_patient(patient_id: int, req: AssignRequest, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     patient = session.get(Patient, patient_id)
     psychologist = session.get(Psychologist, req.psychologist_id)
     
@@ -246,7 +261,8 @@ def assign_patient(patient_id: int, req: AssignRequest, session: Session = Depen
     return {"ok": True}
 
 @app.patch("/patients/{patient_id}/clinical-summary")
-def update_clinical_summary(patient_id: int, summary_data: dict, session: Session = Depends(get_session)):
+def update_clinical_summary(patient_id: int, summary_data: dict, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -260,19 +276,19 @@ def update_clinical_summary(patient_id: int, summary_data: dict, session: Sessio
 # --- Questionnaires ---
 
 @app.post("/questionnaires", response_model=Questionnaire)
-def create_questionnaire(questionnaire: Questionnaire, session: Session = Depends(get_session)):
+def create_questionnaire(questionnaire: Questionnaire, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     session.add(questionnaire)
     session.commit()
     session.refresh(questionnaire)
     return questionnaire
 
 @app.get("/questionnaires", response_model=List[Questionnaire])
-def read_questionnaires(offset: int = 0, limit: int = Query(default=100, lte=100), session: Session = Depends(get_session)):
+def read_questionnaires(offset: int = 0, limit: int = Query(default=100, lte=100), session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     questionnaires = session.exec(select(Questionnaire).offset(offset).limit(limit)).all()
     return questionnaires
 
 @app.delete("/questionnaires/{questionnaire_id}")
-def delete_questionnaire(questionnaire_id: int, session: Session = Depends(get_session)):
+def delete_questionnaire(questionnaire_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     questionnaire = session.get(Questionnaire, questionnaire_id)
     if not questionnaire:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
@@ -282,19 +298,17 @@ def delete_questionnaire(questionnaire_id: int, session: Session = Depends(get_s
 
 # --- Messages ---
 @app.post("/messages", response_model=MessageRead)
-def create_message(message: MessageCreate, session: Session = Depends(get_session)):
+def create_message(message: MessageCreate, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(message.patient_id, current_user, session)
     db_message = Message.from_orm(message)
-    # If message is from psychologist (not patient), mark as read automatically or handle differently?
-    # Logic implies is_from_patient=False means sent by psychologist. 
-    # Usually messages FROM patient are unread for psychologist.
-    
     session.add(db_message)
     session.commit()
     session.refresh(db_message)
     return db_message
 
 @app.post("/messages/mark-read/{patient_id}")
-def mark_messages_read(patient_id: int, session: Session = Depends(get_session)):
+def mark_messages_read(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     statement = select(Message).where(
         Message.patient_id == patient_id,
         Message.is_from_patient == True,
@@ -310,12 +324,14 @@ def mark_messages_read(patient_id: int, session: Session = Depends(get_session))
     return {"ok": True, "count": len(messages)}
 
 @app.get("/messages/{patient_id}", response_model=List[MessageRead])
-def get_messages(patient_id: int, session: Session = Depends(get_session)):
+def get_messages(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     statement = select(Message).where(Message.patient_id == patient_id).order_by(Message.created_at)
     return session.exec(statement).all()
 
 @app.delete("/messages/{patient_id}")
-def delete_messages(patient_id: int, session: Session = Depends(get_session)):
+def delete_messages(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     statement = select(Message).where(Message.patient_id == patient_id)
     results = session.exec(statement)
     for message in results:
@@ -324,7 +340,7 @@ def delete_messages(patient_id: int, session: Session = Depends(get_session)):
     return {"ok": True, "deleted": True}
 
 @app.put("/questionnaires/{questionnaire_id}", response_model=Questionnaire)
-def update_questionnaire(questionnaire_id: int, updated_q: Questionnaire, session: Session = Depends(get_session)):
+def update_questionnaire(questionnaire_id: int, updated_q: Questionnaire, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     questionnaire = session.get(Questionnaire, questionnaire_id)
     if not questionnaire:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
@@ -340,7 +356,8 @@ def update_questionnaire(questionnaire_id: int, updated_q: Questionnaire, sessio
 
 # --- Assignments ---
 @app.post("/assignments", response_model=Assignment)
-def assign_questionnaire(assignment: Assignment, session: Session = Depends(get_session)):
+def assign_questionnaire(assignment: Assignment, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(assignment.patient_id, current_user, session)
     # Verify patient exists
     patient = session.get(Patient, assignment.patient_id)
     if not patient:
@@ -367,8 +384,18 @@ def get_patient_assignments(access_code: str, session: Session = Depends(get_ses
     return patient.assignments
 
 @app.get("/assignments", response_model=List[AssignmentWithQuestionnaire])
-def read_assignments(offset: int = 0, limit: int = Query(default=100, lte=100), session: Session = Depends(get_session)):
-    assignments = session.exec(select(Assignment).options(selectinload(Assignment.questionnaire)).offset(offset).limit(limit)).all()
+def read_assignments(offset: int = 0, limit: int = Query(default=100, lte=100), session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    # Filter by user's patients if not admin
+    if current_user.role != "admin":
+        assignments = session.exec(
+            select(Assignment)
+            .join(Patient)
+            .where(Patient.psychologist_id == current_user.id)
+            .options(selectinload(Assignment.questionnaire))
+            .offset(offset).limit(limit)
+        ).all()
+    else:
+        assignments = session.exec(select(Assignment).options(selectinload(Assignment.questionnaire)).offset(offset).limit(limit)).all()
     return assignments
 
 @app.delete("/assignments/{assignment_id}")
@@ -381,8 +408,9 @@ def delete_assignment(assignment_id: int, session: Session = Depends(get_session
     return {"ok": True}
 
 @app.get("/assignments/patient-admin/{patient_id}", response_model=List[AssignmentWithQuestionnaire])
-def get_patient_assignments_admin(patient_id: int, session: Session = Depends(get_session)):
+def get_patient_assignments_admin(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     """Get assignments for a patient by patient_id (for admin view)"""
+    verify_patient_access(patient_id, current_user, session)
     statement = select(Assignment).where(Assignment.patient_id == patient_id).options(
         selectinload(Assignment.questionnaire)
     ).order_by(Assignment.assigned_at.desc())
@@ -403,11 +431,13 @@ def submit_assignment(assignment_id: int, answers: List[dict], session: Session 
     return assignment
 
 @app.patch("/assignments/{assignment_id}", response_model=Assignment)
-def update_assignment_status(assignment_id: int, status_update: dict, session: Session = Depends(get_session)):
+def update_assignment_status(assignment_id: int, status_update: dict, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     # status_update expects {"status": "paused"} etc.
     assignment = session.get(Assignment, assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    verify_patient_access(assignment.patient_id, current_user, session)
     
     if "status" in status_update:
         assignment.status = status_update["status"]
@@ -437,57 +467,51 @@ def authenticate_patient(access_code: str, session: Session = Depends(get_sessio
 
 # --- Notes ---
 @app.post("/notes", response_model=Note)
-def create_note(note: Note, session: Session = Depends(get_session)):
+def create_note(note: Note, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(note.patient_id, current_user, session)
     session.add(note)
     session.commit()
     session.refresh(note)
     return note
 
 @app.get("/notes/{patient_id}", response_model=List[Note])
-def get_notes(patient_id: int, session: Session = Depends(get_session)):
+def get_notes(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     statement = select(Note).where(Note.patient_id == patient_id).order_by(Note.created_at.desc())
     return session.exec(statement).all()
 
 @app.delete("/notes/{note_id}")
-def delete_note(note_id: int, session: Session = Depends(get_session)):
+def delete_note(note_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     note = session.get(Note, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+    verify_patient_access(note.patient_id, current_user, session)
     session.delete(note)
     session.commit()
     return {"ok": True}
 
 # --- Sessions ---
 @app.post("/sessions", response_model=TherapySession)
-def create_session(session_data: TherapySession, session: Session = Depends(get_session)):
-    try:
-        print(f"DEBUG: create_session called with {session_data}")
-        # Log to file
-        with open("debug_log.txt", "a") as f:
-            f.write(f"create_session called with {session_data}\\n")
-            
-        session.add(session_data)
-        session.commit()
-        session.refresh(session_data)
-        return session_data
-    except Exception as e:
-        import traceback
-        error_msg = traceback.format_exc()
-        print(f"ERROR in create_session: {error_msg}")
-        with open("debug_log.txt", "a") as f:
-            f.write(f"ERROR in create_session: {error_msg}\\n")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+def create_session(session_data: TherapySession, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(session_data.patient_id, current_user, session)
+    session.add(session_data)
+    session.commit()
+    session.refresh(session_data)
+    return session_data
 
 @app.get("/sessions/{patient_id}", response_model=List[TherapySession])
-def get_sessions(patient_id: int, session: Session = Depends(get_session)):
+def get_sessions(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     statement = select(TherapySession).where(TherapySession.patient_id == patient_id).order_by(TherapySession.date.desc())
     return session.exec(statement).all()
 
 @app.put("/sessions/{session_id}", response_model=TherapySession)
-def update_session(session_id: int, session_data: SessionUpdate, session: Session = Depends(get_session)):
+def update_session(session_id: int, session_data: SessionUpdate, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     db_session = session.get(TherapySession, session_id)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    verify_patient_access(db_session.patient_id, current_user, session)
     
     if session_data.date: db_session.date = session_data.date
     if session_data.duration: db_session.duration = session_data.duration
@@ -500,10 +524,12 @@ def update_session(session_id: int, session_data: SessionUpdate, session: Sessio
     return db_session
 
 @app.delete("/sessions/{session_id}")
-def delete_session(session_id: int, session: Session = Depends(get_session)):
+def delete_session(session_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     db_session = session.get(TherapySession, session_id)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    verify_patient_access(db_session.patient_id, current_user, session)
     
     session.delete(db_session)
     session.commit()
@@ -511,22 +537,26 @@ def delete_session(session_id: int, session: Session = Depends(get_session)):
 
 # --- Assessment Stats ---
 @app.get("/assessment-stats/{patient_id}", response_model=List[AssessmentStat])
-def get_assessment_stats(patient_id: int, session: Session = Depends(get_session)):
+def get_assessment_stats(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(patient_id, current_user, session)
     statement = select(AssessmentStat).where(AssessmentStat.patient_id == patient_id).order_by(AssessmentStat.created_at.desc())
     return session.exec(statement).all()
 
 @app.post("/assessment-stats", response_model=AssessmentStat)
-def create_assessment_stat(stat: AssessmentStat, session: Session = Depends(get_session)):
+def create_assessment_stat(stat: AssessmentStat, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    verify_patient_access(stat.patient_id, current_user, session)
     session.add(stat)
     session.commit()
     session.refresh(stat)
     return stat
 
 @app.put("/assessment-stats/{stat_id}", response_model=AssessmentStat)
-def update_assessment_stat(stat_id: int, stat_update: AssessmentStat, session: Session = Depends(get_session)):
+def update_assessment_stat(stat_id: int, stat_update: AssessmentStat, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     stat = session.get(AssessmentStat, stat_id)
     if not stat:
         raise HTTPException(status_code=404, detail="Assessment stat not found")
+    
+    verify_patient_access(stat.patient_id, current_user, session)
     
     stat.label = stat_update.label
     stat.value = stat_update.value
@@ -541,17 +571,22 @@ def update_assessment_stat(stat_id: int, stat_update: AssessmentStat, session: S
     return stat
 
 @app.delete("/assessment-stats/{stat_id}")
-def delete_assessment_stat(stat_id: int, session: Session = Depends(get_session)):
+def delete_assessment_stat(stat_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     stat = session.get(AssessmentStat, stat_id)
     if not stat:
         raise HTTPException(status_code=404, detail="Assessment stat not found")
+    verify_patient_access(stat.patient_id, current_user, session)
     session.delete(stat)
     session.commit()
     return {"ok": True}
 
 # --- Stats ---
 @app.get("/dashboard/stats")
-def get_dashboard_stats(psychologist_id: Optional[int] = None, session: Session = Depends(get_session)):
+def get_dashboard_stats(psychologist_id: Optional[int] = None, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    # Non-admin users can only see their own stats
+    if current_user.role != "admin":
+        psychologist_id = current_user.id
+    
     # Base queries
     q_patients = select(Patient)
     q_messages = select(Message)
