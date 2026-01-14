@@ -9,7 +9,7 @@ import secrets
 from contextlib import asynccontextmanager
 
 from database import create_db_and_tables, get_session
-from models import Patient, Questionnaire, Assignment, AssignmentWithQuestionnaire, PatientReadWithAssignments, Message, MessageCreate, MessageRead, Note, Psychologist, PsychologistUpdate, Session as TherapySession, SessionUpdate, AssessmentStat, AuditLog
+from models import Patient, Questionnaire, Assignment, AssignmentWithQuestionnaire, PatientReadWithAssignments, Message, MessageCreate, MessageRead, Note, Psychologist, PsychologistUpdate, Session as TherapySession, SessionUpdate, SessionRead, AssessmentStat, AuditLog, AssessmentStatRead, NoteRead, PsychologistRead, PatientRead, QuestionnaireRead, AssignmentRead
 from logging_utils import log_action
 from pydantic import BaseModel
 from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, verify_patient_access, get_current_patient, get_current_actor
@@ -91,7 +91,7 @@ def login(creds: LoginRequest, session: Session = Depends(get_session)):
         "access_token": access_token
     }
 
-@app.get("/psychologists", response_model=List[Psychologist])
+@app.get("/psychologists", response_model=List[PsychologistRead])
 def get_psychologists(session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
     return session.exec(select(Psychologist)).all()
 
@@ -159,7 +159,7 @@ def delete_psychologist(user_id: int, session: Session = Depends(get_session), c
     
     return {"ok": True}
 
-@app.get("/profile/{user_id}", response_model=Psychologist)
+@app.get("/profile/{user_id}", response_model=PsychologistRead)
 def get_user_profile(user_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     # Users can only access their own profile unless admin
     if current_user.role != "admin" and current_user.id != user_id:
@@ -169,7 +169,7 @@ def get_user_profile(user_id: int, session: Session = Depends(get_session), curr
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.put("/profile/{user_id}", response_model=Psychologist)
+@app.put("/profile/{user_id}", response_model=PsychologistRead)
 def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     # Users can only update their own profile unless admin
     if current_user.role != "admin" and current_user.id != user_id:
@@ -313,7 +313,7 @@ def update_clinical_summary(patient_id: int, summary_data: dict, session: Sessio
 
 # --- Questionnaires ---
 
-@app.post("/questionnaires")
+@app.post("/questionnaires", response_model=QuestionnaireRead)
 def create_questionnaire(questionnaire: Questionnaire, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     session.add(questionnaire)
     session.commit()
@@ -329,7 +329,7 @@ def create_questionnaire(questionnaire: Questionnaire, session: Session = Depend
         "created_at": questionnaire.created_at
     }
 
-@app.get("/questionnaires", response_model=List[Questionnaire])
+@app.get("/questionnaires", response_model=List[QuestionnaireRead])
 def read_questionnaires(offset: int = 0, limit: int = Query(default=100, lte=100), session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     questionnaires = session.exec(select(Questionnaire).offset(offset).limit(limit)).all()
     return questionnaires
@@ -409,7 +409,7 @@ def delete_messages(patient_id: int, session: Session = Depends(get_session), cu
     
     return {"ok": True, "deleted": True}
 
-@app.put("/questionnaires/{questionnaire_id}", response_model=Questionnaire)
+@app.put("/questionnaires/{questionnaire_id}", response_model=QuestionnaireRead)
 def update_questionnaire(questionnaire_id: int, updated_q: Questionnaire, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     questionnaire = session.get(Questionnaire, questionnaire_id)
     if not questionnaire:
@@ -428,7 +428,7 @@ def update_questionnaire(questionnaire_id: int, updated_q: Questionnaire, sessio
     return questionnaire
 
 # --- Assignments ---
-@app.post("/assignments", response_model=Assignment)
+@app.post("/assignments", response_model=AssignmentRead)
 def assign_questionnaire(assignment: Assignment, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(assignment.patient_id, current_user, session)
     # Verify patient exists
@@ -510,7 +510,7 @@ def get_patient_assignments_admin(patient_id: int, session: Session = Depends(ge
     assignments = session.exec(statement).all()
     return assignments
 
-@app.post("/assignments/{assignment_id}/submit", response_model=Assignment)
+@app.post("/assignments/{assignment_id}/submit", response_model=AssignmentRead)
 def submit_assignment(assignment_id: int, answers: List[dict], session: Session = Depends(get_session), current_user = Depends(get_current_patient)):
     assignment = session.get(Assignment, assignment_id)
     if not assignment:
@@ -523,7 +523,7 @@ def submit_assignment(assignment_id: int, answers: List[dict], session: Session 
     session.refresh(assignment)
     return assignment
 
-@app.patch("/assignments/{assignment_id}", response_model=Assignment)
+@app.patch("/assignments/{assignment_id}", response_model=AssignmentRead)
 def update_assignment_status(assignment_id: int, status_update: dict, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     # status_update expects {"status": "paused"} etc.
     assignment = session.get(Assignment, assignment_id)
@@ -577,7 +577,7 @@ def authenticate_patient(access_code: str, session: Session = Depends(get_sessio
     }
 
 # --- Notes ---
-@app.post("/notes", response_model=Note)
+@app.post("/notes", response_model=NoteRead)
 def create_note(note: Note, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(note.patient_id, current_user, session)
     session.add(note)
@@ -588,7 +588,7 @@ def create_note(note: Note, session: Session = Depends(get_session), current_use
     
     return note
 
-@app.get("/notes/{patient_id}", response_model=List[Note])
+@app.get("/notes/{patient_id}", response_model=List[NoteRead])
 def get_notes(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(patient_id, current_user, session)
     statement = select(Note).where(Note.patient_id == patient_id).order_by(Note.created_at.desc())
@@ -608,7 +608,7 @@ def delete_note(note_id: int, session: Session = Depends(get_session), current_u
     return {"ok": True}
 
 # --- Sessions ---
-@app.post("/sessions", response_model=TherapySession)
+@app.post("/sessions", response_model=SessionRead)
 def create_session(session_data: TherapySession, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(session_data.patient_id, current_user, session)
     session.add(session_data)
@@ -619,13 +619,13 @@ def create_session(session_data: TherapySession, session: Session = Depends(get_
     
     return session_data
 
-@app.get("/sessions/{patient_id}", response_model=List[TherapySession])
+@app.get("/sessions/{patient_id}", response_model=List[SessionRead])
 def get_sessions(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(patient_id, current_user, session)
     statement = select(TherapySession).where(TherapySession.patient_id == patient_id).order_by(TherapySession.date.desc())
     return session.exec(statement).all()
 
-@app.put("/sessions/{session_id}", response_model=TherapySession)
+@app.put("/sessions/{session_id}", response_model=SessionRead)
 def update_session(session_id: int, session_data: SessionUpdate, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     db_session = session.get(TherapySession, session_id)
     if not db_session:
@@ -662,13 +662,13 @@ def delete_session(session_id: int, session: Session = Depends(get_session), cur
     return {"ok": True}
 
 # --- Assessment Stats ---
-@app.get("/assessment-stats/{patient_id}", response_model=List[AssessmentStat])
+@app.get("/assessment-stats/{patient_id}", response_model=List[AssessmentStatRead])
 def get_assessment_stats(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(patient_id, current_user, session)
     statement = select(AssessmentStat).where(AssessmentStat.patient_id == patient_id).order_by(AssessmentStat.created_at.desc())
     return session.exec(statement).all()
 
-@app.post("/assessment-stats", response_model=AssessmentStat)
+@app.post("/assessment-stats", response_model=AssessmentStatRead)
 def create_assessment_stat(stat: AssessmentStat, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     verify_patient_access(stat.patient_id, current_user, session)
     session.add(stat)
@@ -679,7 +679,7 @@ def create_assessment_stat(stat: AssessmentStat, session: Session = Depends(get_
     
     return stat
 
-@app.put("/assessment-stats/{stat_id}", response_model=AssessmentStat)
+@app.put("/assessment-stats/{stat_id}", response_model=AssessmentStatRead)
 def update_assessment_stat(stat_id: int, stat_update: AssessmentStat, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     stat = session.get(AssessmentStat, stat_id)
     if not stat:

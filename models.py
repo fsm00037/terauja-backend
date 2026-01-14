@@ -124,6 +124,15 @@ class SessionUpdate(SQLModel):
     description: Optional[str] = None
     notes: Optional[str] = None
 
+class SessionRead(SQLModel):
+    id: int
+    patient_id: int
+    date: datetime
+    duration: str
+    description: str
+    notes: str
+    chat_snapshot: Optional[List[Dict]] = None
+
 
 class AssessmentStat(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -134,6 +143,43 @@ class AssessmentStat(SQLModel, table=True):
     color: str = "teal"  # teal, amber, coral
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AssessmentStatRead(SQLModel):
+    id: int
+    patient_id: int
+    label: str
+    value: str
+    status: str
+    color: str
+    created_at: datetime
+    updated_at: datetime
+
+class NoteRead(SQLModel):
+    id: int
+    patient_id: int
+    title: str
+    content: str
+    color: str
+    created_at: datetime
+
+class PsychologistRead(SQLModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    schedule: str
+    phone: Optional[str] = None
+    created_at: datetime
+
+class PatientRead(SQLModel):
+    id: int
+    patient_code: str
+    access_code: str
+    psychologist_id: Optional[int]
+    psychologist_name: Optional[str]
+    psychologist_schedule: Optional[str]
+    clinical_summary: Optional[str]
+    created_at: datetime
 
 class PatientReadWithAssignments(SQLModel):
     id: int
