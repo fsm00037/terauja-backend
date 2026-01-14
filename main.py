@@ -12,7 +12,7 @@ from database import create_db_and_tables, get_session
 from models import Patient, Questionnaire, Assignment, AssignmentWithQuestionnaire, PatientReadWithAssignments, Message, MessageCreate, MessageRead, Note, Psychologist, PsychologistUpdate, Session as TherapySession, SessionUpdate, AssessmentStat, AuditLog
 from logging_utils import log_action
 from pydantic import BaseModel
-from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, verify_patient_access
+from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, verify_patient_access, get_current_patient, get_current_actor
 
 class LoginRequest(BaseModel):
     email: str
@@ -348,8 +348,14 @@ def delete_questionnaire(questionnaire_id: int, session: Session = Depends(get_s
 
 # --- Messages ---
 @app.post("/messages", response_model=MessageRead)
-def create_message(message: MessageCreate, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
-    verify_patient_access(message.patient_id, current_user, session)
+def create_message(message: MessageCreate, session: Session = Depends(get_session), current_user = Depends(get_current_actor)):
+    # Verify access based on user type
+    if hasattr(current_user, "role"): # Psychologist
+        verify_patient_access(message.patient_id, current_user, session)
+    else: # Patient
+        if current_user.id != message.patient_id:
+             raise HTTPException(status_code=403, detail="Access denied")
+
     db_message = Message.from_orm(message)
     session.add(db_message)
     session.commit()
@@ -380,8 +386,13 @@ def mark_messages_read(patient_id: int, session: Session = Depends(get_session),
     return {"ok": True, "count": len(messages)}
 
 @app.get("/messages/{patient_id}", response_model=List[MessageRead])
-def get_messages(patient_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
-    verify_patient_access(patient_id, current_user, session)
+def get_messages(patient_id: int, session: Session = Depends(get_session), current_user = Depends(get_current_actor)):
+    # Verify access based on user type
+    if hasattr(current_user, "role"): # Psychologist
+        verify_patient_access(patient_id, current_user, session)
+    else: # Patient
+        if current_user.id != patient_id:
+            raise HTTPException(status_code=403, detail="Access denied")
     statement = select(Message).where(Message.patient_id == patient_id).order_by(Message.created_at)
     return session.exec(statement).all()
 
@@ -439,7 +450,18 @@ def assign_questionnaire(assignment: Assignment, session: Session = Depends(get_
     return assignment
 
 @app.get("/assignments/patient/{access_code}", response_model=List[AssignmentWithQuestionnaire])
-def get_patient_assignments(access_code: str, session: Session = Depends(get_session)):
+def get_patient_assignments(access_code: str, session: Session = Depends(get_session), current_user = Depends(get_current_actor)):
+    # Security check: ensure the token matches the requested patient code
+    # Although the endpoint uses access_code, we should probably verify the token belongs to that patient.
+    # But wait, the frontend currently calls this with accessCode.
+    # If we enforce token, we can just use the token to identify the patient and ignore access_code or verify it matches.
+    
+    # Since we are adding security, let's verify.
+    # If current_user is Patient:
+    if not hasattr(current_user, "role"): 
+        if current_user.access_code != access_code:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
     statement = select(Patient).where(Patient.access_code == access_code).options(selectinload(Patient.assignments).selectinload(Assignment.questionnaire))
     results = session.exec(statement)
     patient = results.first()
@@ -489,7 +511,7 @@ def get_patient_assignments_admin(patient_id: int, session: Session = Depends(ge
     return assignments
 
 @app.post("/assignments/{assignment_id}/submit", response_model=Assignment)
-def submit_assignment(assignment_id: int, answers: List[dict], session: Session = Depends(get_session)):
+def submit_assignment(assignment_id: int, answers: List[dict], session: Session = Depends(get_session), current_user = Depends(get_current_patient)):
     assignment = session.get(Assignment, assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
@@ -534,13 +556,25 @@ def delete_assignment(assignment_id: int, session: Session = Depends(get_session
     return {"ok": True}
 
 # --- Auth ---
-@app.get("/auth/{access_code}", response_model=Patient)
+@app.get("/auth/{access_code}")
 def authenticate_patient(access_code: str, session: Session = Depends(get_session)):
     statement = select(Patient).where(Patient.access_code == access_code)
     patient = session.exec(statement).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Invalid access code")
-    return patient
+    
+    # Generate Token
+    access_token = create_access_token(data={"sub": str(patient.id), "role": "patient"})
+    
+    return {
+        "id": patient.id,
+        "patient_code": patient.patient_code,
+        "access_code": patient.access_code,
+        "psychologist_id": patient.psychologist_id,
+        "psychologist_name": patient.psychologist_name,
+        "psychologist_schedule": patient.psychologist_schedule,
+        "access_token": access_token
+    }
 
 # --- Notes ---
 @app.post("/notes", response_model=Note)

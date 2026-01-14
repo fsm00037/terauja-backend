@@ -121,3 +121,83 @@ def verify_patient_access(patient_id: int, current_user, session: Session) -> bo
         )
     
     return True
+
+
+async def get_current_patient(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    session: Session = Depends(get_session)
+):
+    """Get the current authenticated patient from JWT token."""
+    from models import Patient  # Import here to avoid circular imports
+    
+    token = credentials.credentials
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id: int = payload.get("sub")
+    role: str = payload.get("role")
+    
+    if user_id is None or role != "patient":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials for patient",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    patient = session.get(Patient, int(user_id))
+    if patient is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Patient not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return patient
+
+
+async def get_current_actor(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    session: Session = Depends(get_session)
+):
+    """Get the current authenticated actor (Psychologist or Patient)."""
+    from models import Psychologist, Patient
+    
+    token = credentials.credentials
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    user_id: int = payload.get("sub")
+    role: str = payload.get("role", "psychologist") # Default to psychologist for backward compat if needed
+    
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if role == "patient":
+        user = session.get(Patient, int(user_id))
+    else:
+        user = session.get(Psychologist, int(user_id))
+        
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user
