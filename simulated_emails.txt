@@ -124,3 +124,17 @@ Contraseña: 0SLqZ1DCIgU
 Por favor cambia tu contraseña al ingresar.
 ===========================================
 
+
+===========================================
+To: maria@terauja.com
+Subject: Bienvenido a TeraUJA - Tus Credenciales
+-------------------------------------------
+Hola maria,
+
+Se ha creado tu cuenta profesional.
+Usuario: maria@terauja.com
+Contraseña: dSq_CXuCsOc
+
+Por favor cambia tu contraseña al ingresar.
+===========================================
+

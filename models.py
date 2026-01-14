@@ -24,6 +24,7 @@ class Patient(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_code: str = Field(unique=True, index=True) # Public Identifier
     access_code: str = Field(unique=True, index=True) # Private Login Token
+    email: Optional[str] = None  # Patient email
     
     # Link to specific psychologist
     psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
@@ -175,6 +176,7 @@ class PatientRead(SQLModel):
     id: int
     patient_code: str
     access_code: str
+    email: Optional[str] = None
     psychologist_id: Optional[int]
     psychologist_name: Optional[str]
     psychologist_schedule: Optional[str]
@@ -185,6 +187,7 @@ class PatientReadWithAssignments(SQLModel):
     id: int
     patient_code: str
     access_code: str
+    email: Optional[str] = None
     created_at: datetime
     psychologist_id: Optional[int] = None
     psychologist_name: Optional[str] = None

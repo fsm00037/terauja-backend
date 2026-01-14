@@ -33,14 +33,14 @@ async def lifespan(app: FastAPI):
             print("Creating default Super Admin...")
             super_admin = Psychologist(
                 name="Super Admin",
-                email="admin@terauja.com",
+                email="admin@psicouja.com",
                 password=hash_password("admin"),  # Hashed password
                 role="admin",
                 schedule="Siempre Disponible"
             )
             session.add(super_admin)
             session.commit()
-            print("Default Admin Created: admin@terauja.com / admin")
+            print("Default Admin Created: admin@psicouja.com / admin")
     
     yield
 
@@ -230,6 +230,7 @@ def create_patient(patient: Patient, session: Session = Depends(get_session), cu
         "id": patient.id,
         "patient_code": patient.patient_code,
         "access_code": patient.access_code,
+        "email": patient.email,
         "psychologist_id": patient.psychologist_id,
         "psychologist_name": patient.psychologist_name,
         "psychologist_schedule": patient.psychologist_schedule,
@@ -265,6 +266,7 @@ def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psy
             id=p.id,
             patient_code=p.patient_code,
             access_code=p.access_code,
+            email=p.email,
             created_at=p.created_at,
             psychologist_id=p.psychologist_id,
             psychologist_name=p.psychologist_name,
