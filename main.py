@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import secrets
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from database import create_db_and_tables, get_session
@@ -17,6 +18,10 @@ from auth import hash_password, verify_password, create_access_token, get_curren
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class PatientLoginRequest(BaseModel):
+    email: str
+    access_code: str
 
 class AssignRequest(BaseModel):
     psychologist_id: int
@@ -83,6 +88,13 @@ def login(creds: LoginRequest, session: Session = Depends(get_session)):
     # Log successful login
     log_action(session, user.id, "psychologist", user.name, "LOGIN", details="Successful login")
     
+    # Set online status
+    user.is_online = True
+    user.last_active = datetime.now(timezone.utc)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
     return {
         "id": user.id, 
         "name": user.name, 
@@ -267,6 +279,7 @@ def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psy
             patient_code=p.patient_code,
             access_code=p.access_code,
             email=p.email,
+            is_online=p.is_online,
             created_at=p.created_at,
             psychologist_id=p.psychologist_id,
             psychologist_name=p.psychologist_name,
@@ -558,24 +571,85 @@ def delete_assignment(assignment_id: int, session: Session = Depends(get_session
     return {"ok": True}
 
 # --- Auth ---
-@app.get("/auth/{access_code}")
-def authenticate_patient(access_code: str, session: Session = Depends(get_session)):
-    statement = select(Patient).where(Patient.access_code == access_code)
+@app.post("/auth")
+def authenticate_patient(login: PatientLoginRequest, session: Session = Depends(get_session)):
+    statement = select(Patient).where(
+        Patient.access_code == login.access_code,
+        Patient.email == login.email
+    )
     patient = session.exec(statement).first()
     if not patient:
-        raise HTTPException(status_code=404, detail="Invalid access code")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Generate Token
     access_token = create_access_token(data={"sub": str(patient.id), "role": "patient"})
+
+    # Set online status
+    patient.is_online = True
+    patient.last_active = datetime.now(timezone.utc)
+    session.add(patient)
+    session.commit()
+    session.refresh(patient)
     
     return {
         "id": patient.id,
         "patient_code": patient.patient_code,
         "access_code": patient.access_code,
+        "email": patient.email,
         "psychologist_id": patient.psychologist_id,
         "psychologist_name": patient.psychologist_name,
         "psychologist_schedule": patient.psychologist_schedule,
         "access_token": access_token
+    }
+
+@app.post("/logout")
+def logout(session: Session = Depends(get_session), current_user = Depends(get_current_actor)):
+    if hasattr(current_user, "role"): # Psychologist
+        current_user.is_online = False
+        session.add(current_user)
+        log_action(session, current_user.id, "psychologist", current_user.name, "LOGOUT")
+    else: # Patient
+        current_user.is_online = False
+        session.add(current_user)
+        # log_action for patient logout optional or generic
+    
+    session.commit()
+    return {"ok": True}
+
+@app.post("/heartbeat")
+def heartbeat(session: Session = Depends(get_session), current_user = Depends(get_current_actor)):
+    if hasattr(current_user, "role"): # Psychologist
+        current_user.last_active = datetime.now(timezone.utc)
+        current_user.is_online = True
+        session.add(current_user)
+    else: # Patient
+        current_user.last_active = datetime.now(timezone.utc)
+        current_user.is_online = True
+        session.add(current_user)
+    
+    session.commit()
+    return {"ok": True}
+
+def get_current_patient(current_user = Depends(get_current_actor)):
+    if hasattr(current_user, "patient_code"):
+        return current_user
+    raise HTTPException(status_code=403, detail="Not a patient")
+
+@app.get("/patient/status")
+def get_patient_status(
+    session: Session = Depends(get_session),
+    current_patient: Patient = Depends(get_current_patient)
+):
+    # Determine psychologist status
+    psychologist_online = False
+    if current_patient.psychologist_id:
+        psychologist = session.get(Psychologist, current_patient.psychologist_id)
+        if psychologist:
+            psychologist_online = psychologist.is_online
+            
+    return {
+        "is_online": current_patient.is_online,
+        "psychologist_is_online": psychologist_online
     }
 
 # --- Notes ---
@@ -693,7 +767,7 @@ def update_assessment_stat(stat_id: int, stat_update: AssessmentStat, session: S
     stat.value = stat_update.value
     stat.status = stat_update.status
     stat.color = stat_update.color
-    from datetime import datetime
+    
     stat.updated_at = datetime.utcnow()
     
     session.add(stat)
@@ -804,12 +878,20 @@ def get_dashboard_stats(psychologist_id: Optional[int] = None, session: Session 
     completed_emas = session.exec(q_completed_emas).all()
     pending_emas = session.exec(q_pending_emas).all()
 
+    # Online Patients Count
+    # Filter by psychologist if not admin, and check is_online=True
+    q_online = select(Patient).where(Patient.is_online == True)
+    if psychologist_id:
+        q_online = q_online.where(Patient.psychologist_id == psychologist_id)
+    online_patients = session.exec(q_online).all()
+
     return {
         "total_patients": len(total_patients),
         "total_messages": len(total_messages),
         "completed_emas": len(completed_emas),
         "pending_emas": len(pending_emas),
-        "recent_activity": final_activity
+        "recent_activity": final_activity,
+        "online_patients": len(online_patients)
     }
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ class Psychologist(SQLModel, table=True):
     role: str = Field(default="psychologist") # "admin" (super) or "psychologist"
     schedule: str = Field(default="Lunes a Viernes, 9:00 - 18:00")
     phone: Optional[str] = None
+    is_online: bool = Field(default=False)
+    last_active: datetime = Field(default_factory=datetime.utcnow)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     patients: List["Patient"] = Relationship(back_populates="psychologist")
@@ -25,6 +27,8 @@ class Patient(SQLModel, table=True):
     patient_code: str = Field(unique=True, index=True) # Public Identifier
     access_code: str = Field(unique=True, index=True) # Private Login Token
     email: Optional[str] = None  # Patient email
+    is_online: bool = Field(default=False)
+    last_active: datetime = Field(default_factory=datetime.utcnow)
     
     # Link to specific psychologist
     psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
@@ -170,6 +174,7 @@ class PsychologistRead(SQLModel):
     role: str
     schedule: str
     phone: Optional[str] = None
+    is_online: bool = False
     created_at: datetime
 
 class PatientRead(SQLModel):
@@ -177,6 +182,7 @@ class PatientRead(SQLModel):
     patient_code: str
     access_code: str
     email: Optional[str] = None
+    is_online: bool = False
     psychologist_id: Optional[int]
     psychologist_name: Optional[str]
     psychologist_schedule: Optional[str]
@@ -188,6 +194,7 @@ class PatientReadWithAssignments(SQLModel):
     patient_code: str
     access_code: str
     email: Optional[str] = None
+    is_online: bool = False
     created_at: datetime
     psychologist_id: Optional[int] = None
     psychologist_name: Optional[str] = None
