@@ -292,3 +292,17 @@ Contraseña: yWzBirtepA0
 Por favor cambia tu contraseña al ingresar.
 ===========================================
 
+
+===========================================
+To: alex@uja.es
+Subject: Bienvenido a TeraUJA - Tus Credenciales
+-------------------------------------------
+Hola alex,
+
+Se ha creado tu cuenta profesional.
+Usuario: alex@uja.es
+Contraseña: Mc7EwvDn2-Y
+
+Por favor cambia tu contraseña al ingresar.
+===========================================
+
