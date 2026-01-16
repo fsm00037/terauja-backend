@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import secrets
+from sqlalchemy import DateTime
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
@@ -280,6 +281,8 @@ def read_patients(offset: int = 0, limit: int = Query(default=100, lte=100), psy
             access_code=p.access_code,
             email=p.email,
             is_online=p.is_online,
+            total_online_seconds=p.total_online_seconds,
+            last_active=p.last_active,
             created_at=p.created_at,
             psychologist_id=p.psychologist_id,
             psychologist_name=p.psychologist_name,
@@ -618,13 +621,30 @@ def logout(session: Session = Depends(get_session), current_user = Depends(get_c
 
 @app.post("/heartbeat")
 def heartbeat(session: Session = Depends(get_session), current_user = Depends(get_current_actor)):
+    now = datetime.now(timezone.utc)
+    
+    # Calculate delta if previously active and within reasonable "session" window (e.g., < 2 mins)
+    delta = 0
+    if current_user.is_online and current_user.last_active:
+        # Ensure last_active is timezone-aware
+        last_active = current_user.last_active
+        if last_active.tzinfo is None:
+            # If naive, assume it's UTC
+            last_active = last_active.replace(tzinfo=timezone.utc)
+        
+        diff = (now - last_active).total_seconds()
+        if diff < 120: # If heartbeat is regular (e.g. every 60s), add diff. If huge gap, assume new session.
+            delta = int(diff)
+            
     if hasattr(current_user, "role"): # Psychologist
-        current_user.last_active = datetime.now(timezone.utc)
+        current_user.last_active = now
         current_user.is_online = True
+        current_user.total_online_seconds += delta
         session.add(current_user)
     else: # Patient
-        current_user.last_active = datetime.now(timezone.utc)
+        current_user.last_active = now
         current_user.is_online = True
+        current_user.total_online_seconds += delta
         session.add(current_user)
     
     session.commit()
