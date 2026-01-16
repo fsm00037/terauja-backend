@@ -28,20 +28,31 @@ def mi_modelo(input_text, context=None):
     )
     return response.choices[0].message.content
 
-def generate_response_options(chat_history):
+def generate_response_options(chat_history, therapist_style=None, therapist_tone=None, therapist_instructions=None):
     """
     Genera 3 opciones de respuesta para el psicólogo basadas en el historial del chat.
     
     Args:
         chat_history (list): Lista de diccionarios [{'role': 'user'/'assistant', 'content': '...'}, ...]
                              o una cadena de texto con el historial.
+        therapist_style (str, optional): Estilo terapéutico del psicólogo.
+        therapist_tone (str, optional): Tono de comunicación preferido.
+        therapist_instructions (str, optional): Instrucciones adicionales del terapeuta.
     
     Returns:
         list: Lista con 3 opciones de respuesta (strings).
     """
     
-    # Construir el contexto para el prompt
-    contexto = "Eres un asistente de IA para psicólogos. Tu tarea es analizar el historial de conversación con un paciente y sugerir 3 opciones de respuesta posibles para el psicólogo. Las opciones deben ser:\n1. Empática y validante.\n2. Indagatoria (haciendo una pregunta relevante).\n3. Orientada a la acción o psicoeducativa.\n\nDevuelve SOLAMENTE las 3 opciones numeradas (1., 2., 3.) sin texto introductorio ni explicaciones adicionales."
+    # Construir el contexto base para el prompt
+    contexto = "Eres un asistente de IA para psicólogos. Tu tarea es analizar el historial de conversación con un paciente y sugerir 3 opciones de respuesta posibles para el psicólogo. Las opciones deben ser:\\n1. Empática y validante.\\n2. Indagatoria (haciendo una pregunta relevante).\\n3. Orientada a la acción o psicoeducativa.\\n\\nDevuelve SOLAMENTE las 3 opciones numeradas (1., 2., 3.) sin texto introductorio ni explicaciones adicionales."
+    
+    # Añadir configuración del terapeuta si está disponible
+    if therapist_style:
+        contexto += f"\\n\\nEstilo terapéutico: {therapist_style}"
+    if therapist_tone:
+        contexto += f"\\nTono de comunicación: {therapist_tone}"
+    if therapist_instructions:
+        contexto += f"\\nInstrucciones adicionales: {therapist_instructions}"
     
     # Formatear el historial si es una lista de objetos
     historial_str = ""

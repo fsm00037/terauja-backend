@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi import UploadFile, File
+import shutil
+import os
 from sqlmodel import Session, select
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
@@ -61,6 +65,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files
+if not os.path.exists("static"):
+    os.makedirs("static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Utilities
 def generate_access_code():
@@ -194,6 +203,9 @@ def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session:
     if profile_data.name: user.name = profile_data.name
     if profile_data.schedule: user.schedule = profile_data.schedule
     if profile_data.phone: user.phone = profile_data.phone
+    if profile_data.ai_style is not None: user.ai_style = profile_data.ai_style
+    if profile_data.ai_tone is not None: user.ai_tone = profile_data.ai_tone
+    if profile_data.ai_instructions is not None: user.ai_instructions = profile_data.ai_instructions
         
     session.add(user)
     
@@ -228,6 +240,7 @@ def create_patient(patient: Patient, session: Session = Depends(get_session), cu
         if psych:
             patient.psychologist_name = psych.name
             patient.psychologist_schedule = psych.schedule
+            patient.psychologist_photo = psych.photo_url
     else:
         # Fallback: assign to current user
         patient.psychologist_id = current_user.id
@@ -305,6 +318,7 @@ def assign_patient(patient_id: int, req: AssignRequest, session: Session = Depen
     patient.psychologist_id = psychologist.id
     patient.psychologist_name = psychologist.name
     patient.psychologist_schedule = psychologist.schedule
+    patient.psychologist_photo = psychologist.photo_url
     
     session.add(patient)
     session.commit()
@@ -672,6 +686,16 @@ def get_patient_status(
         "psychologist_is_online": psychologist_online
     }
 
+@app.get("/patient/me", response_model=PatientRead)
+def get_current_patient_profile(
+    current_patient: Patient = Depends(get_current_patient)
+):
+    """
+    Get the current authenticated patient's profile details.
+    Useful for refreshing cached data (like psychologist name/schedule) on the frontend.
+    """
+    return current_patient
+
 # --- Notes ---
 @app.post("/notes", response_model=NoteRead)
 def create_note(note: Note, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
@@ -932,11 +956,20 @@ class ChatContext(BaseModel):
     messages: List[dict] # [{"role": "user", "content": "..."}, ...]
 
 @app.post("/chat/recommendations")
-def get_chat_recommendations(context: ChatContext, session: Session = Depends(get_session)):
+def get_chat_recommendations(context: ChatContext, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     try:
-        # Check if llm_service is configured (optional check)
-        # Assuming generate_response_options handles errors gracefully
-        recommendations = generate_response_options(context.messages)
+        # Retrieve therapist's AI configuration
+        therapist = session.get(Psychologist, current_user.id)
+        if not therapist:
+            raise HTTPException(status_code=404, detail="Therapist not found")
+        
+        # Generate recommendations with therapist-specific configuration
+        recommendations = generate_response_options(
+            context.messages,
+            therapist_style=therapist.ai_style,
+            therapist_tone=therapist.ai_tone,
+            therapist_instructions=therapist.ai_instructions
+        )
         return {"recommendations": recommendations}
     except Exception as e:
         print(f"Error getting recommendations: {e}")

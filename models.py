@@ -18,7 +18,13 @@ class Psychologist(SQLModel, table=True):
     is_online: bool = Field(default=False)
     last_active: datetime = Field(default_factory=datetime.utcnow)
     total_online_seconds: int = Field(default=0)
+    photo_url: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # AI Configuration
+    ai_style: Optional[str] = Field(default=None)
+    ai_tone: Optional[str] = Field(default=None)
+    ai_instructions: Optional[str] = Field(default=None)
     
     patients: List["Patient"] = Relationship(back_populates="psychologist")
 
@@ -30,10 +36,14 @@ class PsychologistRead(SQLModel):
     role: str
     schedule: str
     phone: Optional[str] = None
+    photo_url: Optional[str] = None
     is_online: bool = False
     total_online_seconds: int = 0
     last_active: datetime
     created_at: datetime
+    ai_style: Optional[str] = None
+    ai_tone: Optional[str] = None
+    ai_instructions: Optional[str] = None
 
 
 class PsychologistUpdate(SQLModel):
@@ -41,6 +51,9 @@ class PsychologistUpdate(SQLModel):
     email: Optional[str] = None
     schedule: Optional[str] = None
     phone: Optional[str] = None
+    ai_style: Optional[str] = None
+    ai_tone: Optional[str] = None
+    ai_instructions: Optional[str] = None
 
 
 # ============================================================================
@@ -63,6 +76,7 @@ class Patient(SQLModel, table=True):
     # Snapshot fields
     psychologist_name: str = Field(default="Tu Psicólogo") 
     psychologist_schedule: str = Field(default="Lunes a Viernes, 9:00 - 18:00")
+    psychologist_photo: Optional[str] = Field(default=None)
     
     # Clinical summary / case description
     clinical_summary: Optional[str] = None
@@ -84,6 +98,7 @@ class PatientRead(SQLModel):
     psychologist_id: Optional[int] = None
     psychologist_name: Optional[str] = None
     psychologist_schedule: Optional[str] = None
+    psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
     created_at: datetime
 
@@ -99,6 +114,7 @@ class PatientReadWithAssignments(SQLModel):
     created_at: datetime
     psychologist_id: Optional[int] = None
     psychologist_name: Optional[str] = None
+    psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
     unread_messages: int = 0
     assignments: List["AssignmentWithQuestionnaire"] = []
