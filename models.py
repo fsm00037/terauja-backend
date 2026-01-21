@@ -1,7 +1,6 @@
 from typing import List, Optional, Dict
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from datetime import datetime
-
+from datetime import datetime, timezone, timedelta
 
 # ============================================================================
 # PSYCHOLOGIST MODELS
@@ -27,6 +26,19 @@ class Psychologist(SQLModel, table=True):
     ai_instructions: Optional[str] = Field(default=None)
     
     patients: List["Patient"] = Relationship(back_populates="psychologist")
+
+    @property
+    def is_active_now(self) -> bool:
+        if not self.is_online or not self.last_active:
+            return False
+        
+        # Usamos un margen de 2 minutos (120 segundos)
+        now = datetime.now(timezone.utc)
+        last_active_utc = self.last_active
+        if last_active_utc.tzinfo is None:
+            last_active_utc = last_active_utc.replace(tzinfo=timezone.utc)
+            
+        return (now - last_active_utc) < timedelta(seconds=120)
 
 
 class PsychologistRead(SQLModel):
@@ -85,6 +97,20 @@ class Patient(SQLModel, table=True):
 
     assignments: List["Assignment"] = Relationship(back_populates="patient")
     sessions: List["Session"] = Relationship(back_populates="patient")
+    questionnaire_completions: List["QuestionnaireCompletion"] = Relationship(back_populates="patient")
+
+    @property
+    def is_active_now(self) -> bool:
+        if not self.is_online or not self.last_active:
+            return False
+        
+        # Usamos un margen de 2 minutos (120 segundos)
+        now = datetime.now(timezone.utc)
+        last_active_utc = self.last_active
+        if last_active_utc.tzinfo is None:
+            last_active_utc = last_active_utc.replace(tzinfo=timezone.utc)
+            
+        return (now - last_active_utc) < timedelta(seconds=120)
 
 
 class PatientRead(SQLModel):
@@ -152,7 +178,7 @@ class Assignment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_id: int = Field(foreign_key="patient.id")
     questionnaire_id: int = Field(foreign_key="questionnaire.id")
-    status: str = Field(default="active")  # active, paused, completed
+    status: str = Field(default="active") 
     answers: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
     assigned_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -164,9 +190,26 @@ class Assignment(SQLModel, table=True):
     window_start: Optional[str] = "09:00"
     window_end: Optional[str] = "21:00"
     deadline_hours: Optional[int] = 2
+    min_hours_between: Optional[int] = Field(default=8)
+    next_scheduled_at: Optional[datetime] = Field(default=None)
 
-    patient: Patient = Relationship(back_populates="assignments")
-    questionnaire: Questionnaire = Relationship(back_populates="assignments")
+    patient: "Patient" = Relationship(back_populates="assignments")
+    questionnaire: "Questionnaire" = Relationship(back_populates="assignments")
+
+
+class QuestionnaireCompletion(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    assignment_id: int = Field(foreign_key="assignment.id")
+    patient_id: int = Field(foreign_key="patient.id")
+    questionnaire_id: int = Field(foreign_key="questionnaire.id")
+    answers: List[Dict] = Field(sa_column=Column(JSON))
+    scheduled_at: Optional[datetime] = Field(default=None)
+    completed_at: datetime = Field(default_factory=datetime.utcnow)
+    is_delayed: bool = Field(default=False)
+
+    patient: "Patient" = Relationship(back_populates="questionnaire_completions")
+    assignment: "Assignment" = Relationship()
+    questionnaire: "Questionnaire" = Relationship()
 
 
 class AssignmentRead(SQLModel):
@@ -178,6 +221,8 @@ class AssignmentRead(SQLModel):
     assigned_at: datetime
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    next_scheduled_at: Optional[datetime] = None
+    questionnaire: Optional["QuestionnaireRead"] = None
     frequency_type: Optional[str] = None
     frequency_count: Optional[int] = None
     window_start: Optional[str] = None
