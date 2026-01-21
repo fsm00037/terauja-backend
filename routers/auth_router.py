@@ -15,7 +15,7 @@ class LoginRequest(BaseModel):
     password: str
 
 class PatientLoginRequest(BaseModel):
-    email: str
+    patient_code: str
     access_code: str
 
 @router.post("/login")
@@ -49,7 +49,7 @@ def login(creds: LoginRequest, session: Session = Depends(get_session)):
 def authenticate_patient(login: PatientLoginRequest, session: Session = Depends(get_session)):
     statement = select(Patient).where(
         Patient.access_code == login.access_code,
-        Patient.email == login.email
+        Patient.patient_code == login.patient_code
     )
     patient = session.exec(statement).first()
     if not patient:
