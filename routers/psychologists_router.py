@@ -7,6 +7,7 @@ from database import get_session
 from models import Psychologist, PsychologistRead, PsychologistUpdate, Patient
 from auth import hash_password, require_admin, get_current_user
 from logging_utils import log_action
+from utils.sender import send_credentials_email
 
 router = APIRouter()
 
@@ -20,24 +21,8 @@ def create_psychologist(psychologist: Psychologist, session: Session = Depends(g
     raw_password = secrets.token_urlsafe(8)
     psychologist.password = hash_password(raw_password)
     
-    # Simulate Email (Write to file for user visibility)
-    email_content = f"""
-===========================================
-To: {psychologist.email}
-Subject: Bienvenido a TeraUJA - Tus Credenciales
--------------------------------------------
-Hola {psychologist.name},
-
-Se ha creado tu cuenta profesional.
-Usuario: {psychologist.email}
-Contraseña: {raw_password}
-
-Por favor cambia tu contraseña al ingresar.
-===========================================
-"""
-    print(email_content)
-    with open("simulated_emails.txt", "a", encoding="utf-8") as f:
-        f.write(email_content + "\n")
+    # Send credentials via email
+    send_credentials_email(psychologist.email, raw_password)
     
     session.add(psychologist)
     session.commit()
