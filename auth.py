@@ -101,6 +101,18 @@ async def require_admin(
     return current_user
 
 
+async def require_superadmin(
+    current_user = Depends(get_current_user)
+):
+    """Require the current user to be a superadmin."""
+    if current_user.role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin access required"
+        )
+    return current_user
+
+
 def verify_patient_access(patient_id: int, current_user, session: Session) -> bool:
     """Verify that the current user has access to the specified patient."""
     from models import Patient  # Import here to avoid circular imports

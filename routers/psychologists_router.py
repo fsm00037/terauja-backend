@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/psychologists", response_model=List[PsychologistRead])
 def get_psychologists(session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
-    return session.exec(select(Psychologist)).all()
+    return session.exec(select(Psychologist).where(Psychologist.role != "superadmin")).all()
 
 @router.post("/psychologists")
 def create_psychologist(psychologist: Psychologist, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):

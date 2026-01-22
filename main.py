@@ -24,7 +24,9 @@ from routers import (
     assessment_stats_router,
     audit_logs_router,
     dashboard_router,
-    chat_router
+    dashboard_router,
+    chat_router,
+    superadmin_router
 )
 
 @asynccontextmanager
@@ -78,6 +80,7 @@ app.include_router(assessment_stats_router.router, prefix="/assessment-stats", t
 app.include_router(audit_logs_router.router, prefix="/audit-logs", tags=["Audit Logs"])
 app.include_router(dashboard_router.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(chat_router.router, prefix="/chat", tags=["Chat AI"])
+app.include_router(superadmin_router.router, prefix="/superadmin", tags=["Superadmin"])
 
 @app.get("/")
 def read_root():
