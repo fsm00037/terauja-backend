@@ -16,13 +16,23 @@ def create_message(
     current_user = Depends(get_current_actor)
 ):
     # Verify access based on user type
+    patient_id = message.patient_id
+    
+    psych_id = None
+    
     if hasattr(current_user, "role"): # Psychologist
-        verify_patient_access(message.patient_id, current_user, session)
+        verify_patient_access(patient_id, current_user, session)
+        psych_id = current_user.id
     else: # Patient
-        if current_user.id != message.patient_id:
+        if current_user.id != patient_id:
             raise HTTPException(status_code=403, detail="Access denied")
+        # For patient, we attach the message to their CURRENT psychologist
+        if current_user.psychologist_id:
+            psych_id = current_user.psychologist_id
 
     db_message = Message.from_orm(message)
+    db_message.psychologist_id = psych_id
+    
     session.add(db_message)
     session.commit()
     session.refresh(db_message)
@@ -42,14 +52,30 @@ def get_messages(
     session: Session = Depends(get_session), 
     current_user = Depends(get_current_actor)
 ):
-    # Verify access based on user type
+    query = select(Message).where(Message.patient_id == patient_id)
+
     if hasattr(current_user, "role"): # Psychologist
         verify_patient_access(patient_id, current_user, session)
+        # Psychologist sees only messages associated with them (or null? let's stick to strict privacy)
+        # We only show messages where psychologist_id matches.
+        query = query.where(Message.psychologist_id == current_user.id)
     else: # Patient
         if current_user.id != patient_id:
             raise HTTPException(status_code=403, detail="Access denied")
-    
-    statement = select(Message).where(Message.patient_id == patient_id).order_by(Message.created_at)
+        # Patient implementation:
+        # Option A: Patient sees ALL history (standard app behavior).
+        # Option B: Patient only sees history with CURRENT psychologist (strict privacy).
+        # "esta informacion sera exclusiva entre ellos" - implies the conversation is distinct.
+        # If I switch doctors, my chat should likely start empty or relevant to the new doctor.
+        # I will filter by the patient's CURRENT psychologist_id to maintain the "exclusive context" approach.
+        if current_user.psychologist_id:
+             query = query.where(Message.psychologist_id == current_user.psychologist_id)
+        else:
+             # If no psychologist assigned, maybe show nothing or system messages? 
+             # For now, if no psych, maybe show nothing?
+             query = query.where(Message.psychologist_id == None) # Or just fail? safe to show empty.
+
+    statement = query.order_by(Message.created_at)
     return session.exec(statement).all()
 
 @router.post("/mark-read/{patient_id}")

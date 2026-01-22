@@ -16,6 +16,10 @@ def create_note(
     current_user: Psychologist = Depends(get_current_user)
 ):
     verify_patient_access(note.patient_id, current_user, session)
+    
+    # Set the psychologist_id to the current user
+    note.psychologist_id = current_user.id
+    
     session.add(note)
     session.commit()
     session.refresh(note)
@@ -35,7 +39,13 @@ def get_notes(
     current_user: Psychologist = Depends(get_current_user)
 ):
     verify_patient_access(patient_id, current_user, session)
-    statement = select(Note).where(Note.patient_id == patient_id).order_by(Note.created_at.desc())
+    
+    # Filter by both patient_id AND psychologist_id
+    statement = select(Note).where(
+        Note.patient_id == patient_id,
+        Note.psychologist_id == current_user.id
+    ).order_by(Note.created_at.desc())
+    
     return session.exec(statement).all()
 
 @router.delete("/{note_id}")

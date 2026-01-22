@@ -16,6 +16,10 @@ def create_session(
     current_user: Psychologist = Depends(get_current_user)
 ):
     verify_patient_access(session_data.patient_id, current_user, session)
+    
+    # Set the psychologist_id to the current user
+    session_data.psychologist_id = current_user.id
+    
     session.add(session_data)
     session.commit()
     session.refresh(session_data)
@@ -35,9 +39,13 @@ def get_sessions(
     current_user: Psychologist = Depends(get_current_user)
 ):
     verify_patient_access(patient_id, current_user, session)
+    
+    # Filter by both patient_id AND psychologist_id
     statement = select(TherapySession).where(
-        TherapySession.patient_id == patient_id
+        TherapySession.patient_id == patient_id,
+        TherapySession.psychologist_id == current_user.id
     ).order_by(TherapySession.date.desc())
+    
     return session.exec(statement).all()
 
 @router.put("/{session_id}", response_model=SessionRead)

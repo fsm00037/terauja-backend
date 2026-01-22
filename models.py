@@ -246,6 +246,9 @@ class Session(SQLModel, table=True):
     description: str = ""
     notes: str = ""
     chat_snapshot: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
+    
+    # Privacy field
+    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
 
     patient: Patient = Relationship(back_populates="sessions")
 
@@ -304,6 +307,9 @@ class Note(SQLModel, table=True):
     content: str
     color: str = "bg-white"
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Privacy field
+    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
 
 
 class NoteRead(SQLModel):
@@ -326,6 +332,9 @@ class Message(SQLModel, table=True):
     is_from_patient: bool = True
     read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Privacy field
+    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
 
 
 class MessageRead(SQLModel):
