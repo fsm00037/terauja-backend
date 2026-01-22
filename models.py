@@ -1,7 +1,7 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from datetime import datetime, timezone, timedelta
-
+from sqlalchemy.ext.mutable import MutableList
 # ============================================================================
 # PSYCHOLOGIST MODELS
 # ============================================================================
@@ -76,7 +76,6 @@ class Patient(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_code: str = Field(unique=True, index=True)  # Public Identifier
     access_code: str = Field(unique=True, index=True)  # Private Login Token
-    email: Optional[str] = None
     is_online: bool = Field(default=False)
     last_active: datetime = Field(default_factory=datetime.utcnow)
     total_online_seconds: int = Field(default=0)
@@ -117,7 +116,7 @@ class PatientRead(SQLModel):
     id: int
     patient_code: str
     access_code: str
-    email: Optional[str] = None
+    name: str = Field(default="Paciente")
     is_online: bool = False
     total_online_seconds: int = 0
     last_active: datetime
@@ -133,7 +132,6 @@ class PatientReadWithAssignments(SQLModel):
     id: int
     patient_code: str
     access_code: str
-    email: Optional[str] = None
     is_online: bool = False
     total_online_seconds: int = 0
     last_active: Optional[datetime] = None
@@ -241,15 +239,16 @@ class AssignmentWithQuestionnaire(AssignmentRead):
 class Session(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_id: int = Field(foreign_key="patient.id")
+    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
     date: datetime = Field(default_factory=datetime.utcnow)
     duration: str = "0 min"
     description: str = ""
     notes: str = ""
-    chat_snapshot: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
-    
+    chat_snapshot: Optional[List[Dict[str, Any]]] = Field(
+        default=None, 
+        sa_column=Column(MutableList.as_mutable(JSON)) 
+    )
     # Privacy field
-    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
-
     patient: Patient = Relationship(back_populates="sessions")
 
 
@@ -260,7 +259,10 @@ class SessionRead(SQLModel):
     duration: str
     description: str
     notes: str
-    chat_snapshot: Optional[List[Dict]] = None
+    chat_snapshot: Optional[List[Dict[str, Any]]] = Field(
+        default=None, 
+        sa_column=Column(MutableList.as_mutable(JSON)) 
+    )
 
 
 class SessionUpdate(SQLModel):
@@ -268,6 +270,10 @@ class SessionUpdate(SQLModel):
     duration: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
+    chat_snapshot: Optional[List[Dict[str, Any]]] = Field(
+        default=None, 
+        sa_column=Column(MutableList.as_mutable(JSON)) 
+    )
 
 
 # ============================================================================
@@ -328,14 +334,15 @@ class NoteRead(SQLModel):
 class Message(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_id: int = Field(foreign_key="patient.id")
+    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
     content: str
     is_from_patient: bool = True
     read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    # Privacy field
-    psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
-
+    used_ai_suggestion: bool = Field(default=False)
+    was_edited_by_human: bool = Field(default=False)
+    ai_suggestion_log_id: Optional[int] = Field(default=None, foreign_key="aisuggestionlog.id")
 
 class MessageRead(SQLModel):
     id: int
@@ -344,13 +351,41 @@ class MessageRead(SQLModel):
     is_from_patient: bool
     read: bool
     created_at: datetime
-
+    was_edited_by_human: bool = False
+    ai_suggestion_log_id: Optional[int] = None
 
 class MessageCreate(SQLModel):
     patient_id: int
     content: str
     is_from_patient: bool = True
+    ai_suggestion_log_id: Optional[int] = None
+    was_edited_by_human: bool = False
 
+    
+# ============================================================================
+# AISUGGESTION LOG MODELS
+# ============================================================================
+
+class AISuggestionLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id")
+    psychologist_id: int = Field(foreign_key="psychologist.id")
+    
+    # El contexto de la IA en ese momento (Snapshot)
+    ai_style_used: Optional[str] = None
+    ai_tone_used: Optional[str] = None
+    ai_instructions_used: Optional[str] = None
+    
+    # Las 3 sugerencias crudas
+    suggestion_model1: str
+    suggestion_model2: str
+    suggestion_model3: str
+    
+    # Metadatos
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Relación con el mensaje final (opcional, se llena cuando el terapeuta envía)
+    final_message_id: Optional[int] = Field(default=None, foreign_key="message.id")
 
 # ============================================================================
 # AUDIT LOG MODELS

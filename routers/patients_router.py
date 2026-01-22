@@ -52,7 +52,6 @@ def create_patient(patient: Patient, session: Session = Depends(get_session), cu
         "id": patient.id,
         "patient_code": patient.patient_code,
         "access_code": patient.access_code,
-        "email": patient.email,
         "psychologist_id": patient.psychologist_id,
         "psychologist_name": patient.psychologist_name,
         "psychologist_schedule": patient.psychologist_schedule,

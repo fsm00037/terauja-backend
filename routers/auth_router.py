@@ -69,7 +69,6 @@ def authenticate_patient(login: PatientLoginRequest, session: Session = Depends(
         "id": patient.id,
         "patient_code": patient.patient_code,
         "access_code": patient.access_code,
-        "email": patient.email,
         "psychologist_id": patient.psychologist_id,
         "psychologist_name": patient.psychologist_name,
         "psychologist_schedule": patient.psychologist_schedule,

@@ -12,6 +12,9 @@ router = APIRouter()
 
 class ChatContext(BaseModel):
     messages: List[dict] # [{"role": "user", "content": "..."}, ...]
+    patient_id: int
+
+from models import AISuggestionLog # Asegúrate de importar tu nuevo modelo
 
 @router.post("/recommendations")
 def get_chat_recommendations(
@@ -21,24 +24,37 @@ def get_chat_recommendations(
 ):
     print(f"--- Chat Recommendation Request from Psychologist {current_user.id} ---")
     try:
-        # Retrieve therapist's AI configuration
         therapist = session.get(Psychologist, current_user.id)
         if not therapist:
             raise HTTPException(status_code=404, detail="Therapist not found")
 
-        # Agrega estos prints para debuggear
-        print(f"DEBUG - Therapist ID: {current_user.id}")
-        print(f"DEBUG - Style: {therapist.ai_style}")
-        print(f"DEBUG - Tone: {therapist.ai_tone}")
-
-        # Generate recommendations with therapist-specific configuration
-        recommendations = generate_response_options(
+        result = generate_response_options(
             context.messages,
             therapist_style=therapist.ai_style,
             therapist_tone=therapist.ai_tone,
             therapist_instructions=therapist.ai_instructions
         )
-        return {"recommendations": recommendations}
+        new_ai_log = AISuggestionLog(
+            patient_id=context.patient_id,
+            psychologist_id=therapist.id,
+            ai_style_used=therapist.ai_style,
+            ai_tone_used=therapist.ai_tone,
+            ai_instructions_used=therapist.ai_instructions,
+            suggestion_model1=result["options"][0] or "",
+            suggestion_model2=result["options"][1] or "",
+            suggestion_model3=result["options"][2] or "",
+        )
+        
+        session.add(new_ai_log)
+        session.commit()
+        session.refresh(new_ai_log)
+
+        return {
+            "recommendations": result["options"],
+            "ai_suggestion_log_id": new_ai_log.id
+        }
+
     except Exception as e:
         print(f"Error getting recommendations: {e}")
+        session.rollback()
         raise HTTPException(status_code=500, detail="Failed to generate recommendations")

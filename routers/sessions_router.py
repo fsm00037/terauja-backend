@@ -61,20 +61,26 @@ def update_session(
     
     verify_patient_access(db_session.patient_id, current_user, session)
     
-    if session_data.date: db_session.date = session_data.date
-    if session_data.duration: db_session.duration = session_data.duration
-    if session_data.description: db_session.description = session_data.description
-    if session_data.notes: db_session.notes = session_data.notes
+    update_data = session_data.dict(exclude_unset=True)
+    
+    if "chat_snapshot" in update_data and update_data["chat_snapshot"] is not None:
+        log_enriquecido = {
+            "config_snapshot": {
+                "ai_style": current_user.ai_style,
+                "ai_tone": current_user.ai_tone,
+                "ai_instructions": current_user.ai_instructions
+            },
+            "messages": update_data["chat_snapshot"]
+        }
+        db_session.chat_snapshot = log_enriquecido
+    
+    for key, value in update_data.items():
+        if key != "chat_snapshot":
+            setattr(db_session, key, value)
     
     session.add(db_session)
     session.commit()
     session.refresh(db_session)
-    
-    log_action(
-        session, current_user.id, "psychologist", current_user.name, 
-        "UPDATE_SESSION", 
-        details={"session_id": session_id}
-    )
     
     return db_session
 

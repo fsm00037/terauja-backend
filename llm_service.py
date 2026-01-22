@@ -37,48 +37,48 @@ def llm_models(messages):
     # Normalizamos los mensajes antes de enviarlos
     safe_messages = clean_messages(messages)
 
-    content_llama = None
-    content_gemma = None
-    content_qwen = None
+    content_model1 = None
+    content_model2 = None
+    content_model3 = None
 
     # Llama
     try:
-        response_llama = client.chat.completions.create(
+        response_model1 = client.chat.completions.create(
             model=url_prefix + "meta-llama/Llama-3.1-8B-Instruct",
             messages=safe_messages,
             max_tokens=256,
             temperature=0.7
         )
-        content_llama = response_llama.choices[0].message.content.strip()
+        content_model1 = response_model1.choices[0].message.content.strip()
     except Exception as ex:
-        print(f"Error calling Llama: {ex}")
+        print(f"############# Error calling Llama: {ex}")
 
     # Gemma
     try:
-        response_gemma = client.chat.completions.create(
+        response_model2 = client.chat.completions.create(
             model=url_prefix + "google/gemma-3-12b-it",
             messages=safe_messages,
             max_tokens=256,
             temperature=0.7
         )
-        content_gemma = response_gemma.choices[0].message.content.strip()
+        content_model2 = response_model2.choices[0].message.content.strip()
     except Exception as ex:
-        print(f"Error calling Gemma: {ex}")
+        print(f"############# Error calling Gemma: {ex}")
 
     # Qwen
     try:
-        response_qwen = client.chat.completions.create(
+        response_model3 = client.chat.completions.create(
             model=url_prefix + "Qwen/Qwen3-8B",
             messages=safe_messages,
             max_tokens=256,
             temperature=0.7,
             extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
-        content_qwen = response_qwen.choices[0].message.content.strip()
+        content_model3 = response_model3.choices[0].message.content.strip()
     except Exception as ex:
-        print(f"Error calling Qwen: {ex}")
+        print(f"############# Error calling Qwen: {ex}")
     
-    return content_llama, content_gemma, content_qwen
+    return content_model1, content_model2, content_model3
 
 def clean_response(text):
     """
@@ -122,11 +122,10 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
     
     # Construir el mensaje del sistema
     system_message = """Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.
-
-IMPORTANTE: 
-- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales
-- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares
-- Tu respuesta debe ser una continuación natural de la conversación"""
+    IMPORTANTE: 
+    - Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales
+    - NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares
+    - Tu respuesta debe ser una continuación natural de la conversación"""
     
     # Añadir configuración del terapeuta al mensaje del sistema
     if therapist_style:
@@ -156,22 +155,20 @@ IMPORTANTE:
                 messages.append({"role": role, "content": content})
     
     # Si no hay historial válido, usar fallback
+    options = ["¿Cómo te sientes?", "Cuéntame más.", "Te escucho."]
     if len(messages) <= 1:
-        print("No valid chat history found, returning hardcoded fallbacks.")
-        return [
-            "Hola, es un gusto conocerte. ¿Qué te trae por aquí hoy?",
-            "Bienvenido/a. Cuéntame, ¿en qué puedo ayudarte?",
-            "Hola. Este es un espacio seguro para ti. ¿Qué te gustaría compartir hoy?"
-        ]
+        print("############# No valid chat history found, returning hardcoded fallbacks.")
+        return {
+            "options": options[:3]
+        }
     
     try:
-        print(f"Calling LLM models with {len(messages)-1} history messages...")
-        content_llama, content_gemma, content_qwen = llm_models(messages)
-        print(f"LLM Result: Llama={bool(content_llama)}, Gemma={bool(content_gemma)}, Qwen={bool(content_qwen)}")
+        content_model1, content_model2, content_model3 = llm_models(messages)
+        print(f"LLM Result: Model1={bool(content_model1)}, Model2={bool(content_model2)}, Model3={bool(content_model3)}")
         
         # Procesar y limpiar las respuestas
         options = []
-        for content in [content_llama, content_gemma, content_qwen]:
+        for content in [content_model1, content_model2, content_model3]:
             if content:
                 cleaned = clean_response(content)
                 if cleaned and len(cleaned) > 10:
@@ -179,22 +176,17 @@ IMPORTANTE:
         
         # Fallback si no hay suficientes opciones válidas
         if len(options) < 3:
-            print(f"Not enough LLM options ({len(options)}), adding fallbacks.")
-            fallback_messages = [
-                "Entiendo lo que compartes. ¿Podrías contarme más sobre cómo te sientes?",
-                "Es importante que expreses tus emociones. ¿Qué ha sido lo más difícil para ti?",
-                "Gracias por compartir esto conmigo. ¿Cómo has estado manejando esta situación?"
-            ]
+            print(f"############# Not enough LLM options ({len(options)}), adding fallbacks.")
+            fallback_messages = ["¿Cómo te sientes?", "Cuéntame más.", "Te escucho."]
             while len(options) < 3:
                 options.append(fallback_messages[len(options)])
         
-        print(f"Returning {len(options[:3])} options.")
-        return options[:3]
+        return {
+            "options": options[:3]
+        }
 
     except Exception as e:
-        print(f"Error en generate_response_options final step: {e}")
-        return [
-            "Entiendo. ¿Puedes contarme más sobre eso?",
-            "Gracias por compartir. ¿Cómo te hace sentir esta situación?",
-            "Veo que esto es importante para ti. ¿Qué te gustaría trabajar al respecto?"
-        ]
+        print(f"############# Error en generate_response_options final step: {e}")
+        return {
+            "options": options[:3]
+        }

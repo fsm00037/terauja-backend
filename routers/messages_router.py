@@ -15,33 +15,61 @@ def create_message(
     session: Session = Depends(get_session), 
     current_user = Depends(get_current_actor)
 ):
-    # Verify access based on user type
+    # 1. Identificación segura del "Actor" para el log
+    # Si es psicólogo usa .name, si es paciente usa .patient_code
+    actor_name = getattr(current_user, "name", getattr(current_user, "patient_code", "Unknown"))
+    actor_type = "psychologist" if hasattr(current_user, "role") else "patient"
+
+    # 2. Verificar acceso y determinar psych_id
     patient_id = message.patient_id
-    
     psych_id = None
     
-    if hasattr(current_user, "role"): # Psychologist
+    if actor_type == "psychologist":
         verify_patient_access(patient_id, current_user, session)
         psych_id = current_user.id
-    else: # Patient
+    else:
         if current_user.id != patient_id:
             raise HTTPException(status_code=403, detail="Access denied")
-        # For patient, we attach the message to their CURRENT psychologist
         if current_user.psychologist_id:
             psych_id = current_user.psychologist_id
 
-    db_message = Message.from_orm(message)
-    db_message.psychologist_id = psych_id
+    # 3. Crear el mensaje con los campos de trazabilidad de IA
+    db_message = Message(
+        content=message.content,
+        patient_id=message.patient_id,
+        is_from_patient=message.is_from_patient,
+        psychologist_id=psych_id,
+        # Registramos si vino de una IA
+        ai_suggestion_log_id=message.ai_suggestion_log_id,
+        used_ai_suggestion=True if message.ai_suggestion_log_id else False,
+        was_edited_by_human=message.was_edited_by_human,
+    )
     
     session.add(db_message)
     session.commit()
     session.refresh(db_message)
+
+    # 4. (Opcional) Vincular el Log de IA con el mensaje final
+    if message.ai_suggestion_log_id:
+        from models import AISuggestionLog
+        ai_log = session.get(AISuggestionLog, message.ai_suggestion_log_id)
+        if ai_log:
+            ai_log.final_message_id = db_message.id
+            session.add(ai_log)
+            session.commit()
     
+
     log_action(
-        session, current_user.id, 
-        "psychologist" if not message.is_from_patient else "patient", 
-        current_user.name, "CREATE_MESSAGE", 
-        details={"patient_id": message.patient_id, "is_from_patient": message.is_from_patient}
+        session, 
+        current_user.id, 
+        actor_type, 
+        actor_name, 
+        "CREATE_MESSAGE", 
+        details={
+            "patient_id": message.patient_id, 
+            "is_from_patient": message.is_from_patient,
+            "ai_used": bool(message.ai_suggestion_log_id)
+        }
     )
     
     return db_message
@@ -56,24 +84,14 @@ def get_messages(
 
     if hasattr(current_user, "role"): # Psychologist
         verify_patient_access(patient_id, current_user, session)
-        # Psychologist sees only messages associated with them (or null? let's stick to strict privacy)
-        # We only show messages where psychologist_id matches.
         query = query.where(Message.psychologist_id == current_user.id)
     else: # Patient
         if current_user.id != patient_id:
             raise HTTPException(status_code=403, detail="Access denied")
-        # Patient implementation:
-        # Option A: Patient sees ALL history (standard app behavior).
-        # Option B: Patient only sees history with CURRENT psychologist (strict privacy).
-        # "esta informacion sera exclusiva entre ellos" - implies the conversation is distinct.
-        # If I switch doctors, my chat should likely start empty or relevant to the new doctor.
-        # I will filter by the patient's CURRENT psychologist_id to maintain the "exclusive context" approach.
         if current_user.psychologist_id:
              query = query.where(Message.psychologist_id == current_user.psychologist_id)
         else:
-             # If no psychologist assigned, maybe show nothing or system messages? 
-             # For now, if no psych, maybe show nothing?
-             query = query.where(Message.psychologist_id == None) # Or just fail? safe to show empty.
+             query = query.where(Message.psychologist_id == None) 
 
     statement = query.order_by(Message.created_at)
     return session.exec(statement).all()
