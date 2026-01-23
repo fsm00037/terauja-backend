@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from sqlmodel import Session, select
 from dotenv import load_dotenv
 import os
+import asyncio
+from services.scheduler import run_scheduler
 
 load_dotenv()
 
@@ -49,6 +51,11 @@ async def lifespan(app: FastAPI):
             session.commit()
             print("Default Admin Created: admin@psicouja.com / admin")
     
+            print("Default Admin Created: admin@psicouja.com / admin")
+    
+    # Start Background Scheduler
+    asyncio.create_task(run_scheduler())
+    
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -56,7 +63,7 @@ app = FastAPI(lifespan=lifespan)
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https?://.*$",
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8001", "http://localhost:3001", "http://127.0.0.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

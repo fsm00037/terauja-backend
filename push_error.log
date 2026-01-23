@@ -1,0 +1,24 @@
+Exception: WebPushException: Push failed: 400 Bad Request
+Response body:, Response 
+Traceback (most recent call last):
+  File "C:\Users\fabia\Documents\ProyectoPsicologia\backend\test_push.py", line 37, in test_push
+    result = send_push_notification(subscription_info, payload)
+  File "C:\Users\fabia\Documents\ProyectoPsicologia\backend\utils\push_service.py", line 43, in send_push_notification
+    raise ex # Re-raise for debug
+    ^^^^^^^^
+  File "C:\Users\fabia\Documents\ProyectoPsicologia\backend\utils\push_service.py", line 31, in send_push_notification
+    webpush(
+    ~~~~~~~^
+        subscription_info=subscription_info,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        vapid_claims=VAPID_CLAIMS
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\fabia\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\pywebpush\__init__.py", line 537, in webpush
+    raise WebPushException(
+    ...<4 lines>...
+    )
+pywebpush.WebPushException: WebPushException: Push failed: 400 Bad Request
+Response body:, Response 

@@ -80,28 +80,33 @@ def get_dashboard_stats(
     activity_log.sort(key=lambda x: x["timestamp"], reverse=True)
     final_activity = activity_log[:10]
     
-    q_completed_questionaries = select(func.count(QuestionnaireCompletion.id))
-    q_pending_questionaries = select(Assignment).where(Assignment.status != "completed")
+    q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).where(
+        QuestionnaireCompletion.status == "completed"
+    )
+    q_pending_questionnaires = select(Assignment).where(Assignment.status != "completed")
     
     if psychologist_id:
-        q_completed_questionaries = select(func.count(QuestionnaireCompletion.id)).join(
+        q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
             Patient, QuestionnaireCompletion.patient_id == Patient.id
-        ).where(Patient.psychologist_id == psychologist_id)
-        q_pending_questionaries = q_pending_questionaries.join(Patient).where(Patient.psychologist_id == psychologist_id)
+        ).where(
+            Patient.psychologist_id == psychologist_id,
+            QuestionnaireCompletion.status == "completed"
+        )
+        q_pending_questionnaires = q_pending_questionnaires.join(Patient).where(Patient.psychologist_id == psychologist_id)
 
-    completed_questionaries_count = session.exec(q_completed_questionaries).one()
-    pending_questionaries_list = session.exec(q_pending_questionaries).all()
+    completed_questionnaires_count = session.exec(q_completed_questionnaires).one()
+    pending_questionnaires_list = session.exec(q_pending_questionnaires).all()
     
     # Check for expired ones in the pending list
     changed = False
-    for a in pending_questionaries_list:
+    for a in pending_questionnaires_list:
         if check_and_update_assignment_expiry(a, session):
             changed = True
     if changed:
         session.commit()
     
     # Recount active
-    pending_count = len([a for a in pending_questionaries_list if a.status != "completed"])
+    pending_count = len([a for a in pending_questionnaires_list if a.status != "completed"])
 
     # Online Patients Count
     q_online = select(Patient).where(Patient.is_online == True)
@@ -112,8 +117,8 @@ def get_dashboard_stats(
     return {
         "total_patients": len(total_patients),
         "total_messages": len(total_messages),
-        "completed_questionaries": completed_questionaries_count,
-        "pending_questionaries": pending_count,
+        "completed_questionnaires": completed_questionnaires_count,
+        "pending_questionnaires": pending_count,
         "recent_activity": final_activity,
         "online_patients": len(online_patients)
     }
