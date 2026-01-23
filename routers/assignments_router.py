@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_, SQLModel
 from sqlalchemy.orm import selectinload
 from typing import List
 from datetime import datetime, timedelta
@@ -7,11 +7,25 @@ from datetime import datetime, timedelta
 from database import get_session
 from models import (
     Assignment, AssignmentRead, AssignmentWithQuestionnaire, 
-    Patient, Questionnaire, Psychologist, QuestionnaireCompletion
+    Patient, Questionnaire, Psychologist, QuestionnaireCompletion, QuestionnaireRead
 )
 from auth import get_current_user, get_current_actor, get_current_patient, verify_patient_access
 from logging_utils import log_action
 from utils.assignment_utils import calculate_next_scheduled_time, check_and_update_assignment_expiry
+
+class QuestionnaireCompletionWithDetails(SQLModel):
+    id: int
+    assignment_id: int
+    patient_id: int
+    questionnaire_id: int
+    answers: List[dict] | None = None
+    scheduled_at: datetime | None = None
+    completed_at: datetime | None = None
+    status: str
+    is_delayed: bool
+    deadline_hours: int | None = None
+    questionnaire: QuestionnaireRead | None = None
+
 
 router = APIRouter()
 
@@ -34,13 +48,43 @@ def assign_questionnaire(
         raise HTTPException(status_code=404, detail="Questionnaire not found")
 
     # Initial scheduling
-    assignment.next_scheduled_at = calculate_next_scheduled_time(assignment)
+    # assignment.next_scheduled_at = calculate_next_scheduled_time(assignment) # REMOVED RANDOM LOGIC
     if assignment.frequency_type: 
         assignment.status = "active"
 
     session.add(assignment)
     session.commit()
     session.refresh(assignment)
+    
+    # Generate scheduled completions
+    from utils.assignment_utils import generate_schedule_dates
+    if assignment.start_date and assignment.end_date:
+        dates = generate_schedule_dates(
+            assignment.start_date, 
+            assignment.end_date, 
+            assignment.frequency_type, 
+            assignment.frequency_count or 1,
+            assignment.window_start or "09:00",
+            assignment.window_end or "21:00"
+        )
+        
+        for i, dt in enumerate(dates):
+            completion = QuestionnaireCompletion(
+                assignment_id=assignment.id,
+                patient_id=assignment.patient_id,
+                questionnaire_id=assignment.questionnaire_id,
+                scheduled_at=dt,
+                status="pending"
+            )
+            session.add(completion)
+            
+            # Set next_scheduled_at to the first one
+            if i == 0:
+                assignment.next_scheduled_at = dt
+        
+        session.add(assignment)
+        session.commit()
+        session.refresh(assignment)
     
     log_action(
         session, current_user.id, "psychologist", current_user.name, 
@@ -148,52 +192,179 @@ def submit_assignment(
     
     # Register completion
     is_delayed = False
-    scheduled_at = assignment.next_scheduled_at
-    if assignment.next_scheduled_at:
-        if datetime.utcnow() > assignment.next_scheduled_at + timedelta(hours=2):
-            is_delayed = True
-
-    completion = QuestionnaireCompletion(
-        assignment_id=assignment.id,
-        patient_id=assignment.patient_id,
-        questionnaire_id=assignment.questionnaire_id,
-        answers=answers,
-        scheduled_at=scheduled_at,
-        completed_at=datetime.utcnow(),
-        is_delayed=is_delayed
-    )
-    session.add(completion)
     
-    if not assignment.frequency_type or assignment.frequency_count == 0:
-        assignment.status = "completed"
-        assignment.answers = answers
+    # 1. Find the earliest pending completion for this assignment
+    statement = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.assignment_id == assignment_id)
+        .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
+        .order_by(QuestionnaireCompletion.scheduled_at)
+    )
+    pending_completion = session.exec(statement).first()
+
+    if pending_completion:
+        # Update existing pending completion
+        completion = pending_completion
+        completion.answers = answers
+        completion.completed_at = datetime.utcnow()
+        completion.status = "completed"
+        
+        # Check delay
+        if completion.scheduled_at:
+             deadline = assignment.deadline_hours or 24
+             if datetime.utcnow() > completion.scheduled_at + timedelta(hours=deadline):
+                 completion.is_delayed = True
     else:
-        assignment.next_scheduled_at = calculate_next_scheduled_time(assignment)
-        if assignment.end_date:
-            try:
-                end_dt = datetime.fromisoformat(assignment.end_date)
-                if datetime.utcnow() > end_dt:
-                    assignment.status = "completed"
-            except:
-                pass
+        # Fallback: create new one (shouldn't happen with new logic but safe fallback)
+        scheduled_at = assignment.next_scheduled_at
+        if assignment.next_scheduled_at:
+            if datetime.utcnow() > assignment.next_scheduled_at + timedelta(hours=2):
+                is_delayed = True
+
+        completion = QuestionnaireCompletion(
+            assignment_id=assignment.id,
+            patient_id=assignment.patient_id,
+            questionnaire_id=assignment.questionnaire_id,
+            answers=answers,
+            scheduled_at=scheduled_at,
+            completed_at=datetime.utcnow(),
+            is_delayed=is_delayed,
+            status="completed"
+        )
+        session.add(completion)
+    
+    # Update Assignment Status and Next Schedule
+    
+    # Find NEXT pending to update assignment.next_scheduled_at
+    next_pending = session.exec(
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.assignment_id == assignment_id)
+        .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
+        .order_by(QuestionnaireCompletion.scheduled_at)
+    ).first()
+    
+    if next_pending:
+        assignment.next_scheduled_at = next_pending.scheduled_at
+    else:
+        # No more pending items
+        assignment.next_scheduled_at = None
+        assignment.status = "completed"
     
     session.add(assignment)
+    session.add(completion)
     session.commit()
     session.refresh(assignment)
     return assignment
 
-@router.get("/completions/{patient_id}", response_model=List[QuestionnaireCompletion])
+@router.get("/completions/{patient_id}", response_model=List[QuestionnaireCompletionWithDetails])
 def get_questionnaire_completions(
     patient_id: int, 
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
+    """Get questionnaire completions for a patient by patient_id"""
     verify_patient_access(patient_id, current_user, session)
-    statement = select(QuestionnaireCompletion).where(QuestionnaireCompletion.patient_id == patient_id).options(
-        selectinload(QuestionnaireCompletion.questionnaire)
-    ).order_by(QuestionnaireCompletion.completed_at.desc())
-    results = session.exec(statement).all()
+    
+    # Check for missed completions
+    # Logic: if pending and scheduled_at + 24h < now -> missed
+    pending_statement = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.patient_id == patient_id)
+        .where(QuestionnaireCompletion.status == "pending")
+    )
+    pending_completions = session.exec(pending_statement).all()
+    
+    changed = False
+    now = datetime.utcnow()
+    for c in pending_completions:
+        if c.scheduled_at and (c.scheduled_at + timedelta(hours=24) < now):
+             c.status = "missed"
+             session.add(c)
+             changed = True
+    
+    if changed:
+        session.commit()
+
+    statement = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.patient_id == patient_id)
+        .options(selectinload(QuestionnaireCompletion.questionnaire))
+        .order_by(QuestionnaireCompletion.scheduled_at.desc())
+    )
+    completions = session.exec(statement).all()
+    return completions
+
+@router.get("/my-pending", response_model=List[QuestionnaireCompletionWithDetails])
+def get_my_pending_assignments(
+    session: Session = Depends(get_session),
+    current_user: Patient = Depends(get_current_patient)
+):
+    """
+    Get pending assignments for the current patient.
+    Checks for any pending completions that are due (scheduled_at <= now).
+    Marks them as 'sent' if they are not already sent.
+    Returns all 'sent' (and previously 'sent') items that are not completed or missed.
+    """
+    now = datetime.now()
+    
+    # 1. Update pending -> sent if due
+    statement = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.patient_id == current_user.id)
+        .where(QuestionnaireCompletion.status == "pending")
+        .where(QuestionnaireCompletion.scheduled_at <= now)
+    )
+    due_completions = session.exec(statement).all()
+    
+    for c in due_completions:
+        c.status = "sent"
+        session.add(c)
+    
+    if due_completions:
+        session.commit()
+    
+    # 1.5 Update sent -> missed if > deadline
+    statement_missed = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.patient_id == current_user.id)
+        .where(QuestionnaireCompletion.status == "sent")
+        .options(selectinload(QuestionnaireCompletion.assignment))
+    )
+    potential_missed = session.exec(statement_missed).all()
+    missed_changed = False
+    for c in potential_missed:
+        deadline_hours = c.assignment.deadline_hours or 24
+        if c.scheduled_at and (c.scheduled_at + timedelta(hours=deadline_hours) < now):
+             c.status = "missed"
+             session.add(c)
+             missed_changed = True
+    
+    if missed_changed:
+        session.commit()
+        
+    # 2. Fetch all 'sent' or 'missed' items
+    statement_sent = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.patient_id == current_user.id)
+        .where(or_(QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed")) 
+        .options(selectinload(QuestionnaireCompletion.questionnaire))
+        .options(selectinload(QuestionnaireCompletion.assignment))
+        .order_by(QuestionnaireCompletion.scheduled_at)
+    )
+    # Re-querying to get the updated status and questionnaire relation
+    sent_completions = session.exec(statement_sent).all()
+    
+    # Enrich with deadline_hours
+    results = []
+    for c in sent_completions:
+        # Create response object from model
+        c_dict = c.model_dump()
+        c_dict['deadline_hours'] = c.assignment.deadline_hours
+        c_dict['questionnaire'] = c.questionnaire 
+        results.append(QuestionnaireCompletionWithDetails(**c_dict))
+
     return results
+
 
 @router.patch("/{assignment_id}", response_model=AssignmentRead)
 def update_assignment_status(
@@ -209,7 +380,28 @@ def update_assignment_status(
     verify_patient_access(assignment.patient_id, current_user, session)
     
     if "status" in status_update:
-        assignment.status = status_update["status"]
+        new_status = status_update["status"]
+        
+        # Logic for early completion/finalization
+        if new_status == "completed" and assignment.status != "completed":
+            from datetime import datetime
+            now = datetime.utcnow()
+            
+            # Delete future pending completions
+            future_pending = session.exec(
+                select(QuestionnaireCompletion)
+                .where(QuestionnaireCompletion.assignment_id == assignment_id)
+                .where(QuestionnaireCompletion.status == "pending")
+                .where(QuestionnaireCompletion.scheduled_at > now)
+            ).all()
+            
+            for fp in future_pending:
+                session.delete(fp)
+                
+            # Update end date to now to reflect early finish
+            # assignment.end_date = now.strftime("%Y-%m-%d") # Optional: depends on business rule? User said "up to date"
+            
+        assignment.status = new_status
     
     session.add(assignment)
     session.commit()
@@ -228,9 +420,51 @@ def delete_assignment(assignment_id: int, session: Session = Depends(get_session
     assignment = session.get(Assignment, assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    # Cascade delete completions
+    completions = session.exec(select(QuestionnaireCompletion).where(QuestionnaireCompletion.assignment_id == assignment_id)).all()
+    for completion in completions:
+        session.delete(completion)
+        
     session.delete(assignment)
     session.commit()
     
     log_action(session, 0, "system", "Unknown", "DELETE_ASSIGNMENT", details={"assignment_id": assignment_id})
     
     return {"ok": True}
+
+@router.patch("/completions/{completion_id}", response_model=QuestionnaireCompletion)
+def update_completion(
+    completion_id: int, 
+    update_data: dict, 
+    session: Session = Depends(get_session), 
+    current_user: Psychologist = Depends(get_current_user)
+):
+    completion = session.get(QuestionnaireCompletion, completion_id)
+    if not completion:
+        raise HTTPException(status_code=404, detail="Completion not found")
+        
+    verify_patient_access(completion.patient_id, current_user, session)
+    
+    if "scheduled_at" in update_data:
+        try:
+            # Handle ISO string from frontend
+            dt = datetime.fromisoformat(update_data["scheduled_at"].replace("Z", ""))
+            completion.scheduled_at = dt
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format")
+            
+    if "status" in update_data:
+        completion.status = update_data["status"]
+        
+    session.add(completion)
+    session.commit()
+    session.refresh(completion)
+    
+    log_action(
+        session, current_user.id, "psychologist", current_user.name, 
+        "UPDATE_COMPLETION", 
+        details={"completion_id": completion_id, "update": update_data}
+    )
+    
+    return completion

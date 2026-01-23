@@ -202,9 +202,10 @@ class QuestionnaireCompletion(SQLModel, table=True):
     assignment_id: int = Field(foreign_key="assignment.id")
     patient_id: int = Field(foreign_key="patient.id")
     questionnaire_id: int = Field(foreign_key="questionnaire.id")
-    answers: List[Dict] = Field(sa_column=Column(JSON))
+    answers: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
     scheduled_at: Optional[datetime] = Field(default=None)
-    completed_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = Field(default=None)
+    status: str = Field(default="pending") # pending, completed, missed
     is_delayed: bool = Field(default=False)
 
     patient: "Patient" = Relationship(back_populates="questionnaire_completions")
@@ -365,3 +366,14 @@ class AuditLog(SQLModel, table=True):
     details: Optional[str] = None  # JSON string or text details
     ip_address: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+# ============================================================================
+# PUSH SUBSCRIPTION MODELS
+# ============================================================================
+
+class PushSubscription(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id", index=True)
+    endpoint: str = Field(index=True)
+    p256dh: str
+    auth: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
