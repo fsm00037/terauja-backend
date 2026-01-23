@@ -159,7 +159,8 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
     if len(messages) <= 1:
         print("############# No valid chat history found, returning hardcoded fallbacks.")
         return {
-            "options": options[:3]
+            "options": options[:3],
+            "raw_options": [content_model1, content_model2, content_model3]
         }
     
     try:
@@ -171,7 +172,7 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
         for content in [content_model1, content_model2, content_model3]:
             if content:
                 cleaned = clean_response(content)
-                if cleaned and len(cleaned) > 10:
+                if cleaned and len(cleaned) > 2:
                     options.append(cleaned)
         
         # Fallback si no hay suficientes opciones válidas
@@ -182,11 +183,13 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
                 options.append(fallback_messages[len(options)])
         
         return {
-            "options": options[:3]
+            "options": options[:3],
+            "raw_options": [content_model1, content_model2, content_model3]
         }
 
     except Exception as e:
         print(f"############# Error en generate_response_options final step: {e}")
         return {
-            "options": options[:3]
+            "options": options[:3],
+            "raw_options": [content_model1, content_model2, content_model3]
         }

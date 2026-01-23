@@ -43,6 +43,7 @@ def get_chat_recommendations(
             suggestion_model1=result["options"][0] or "",
             suggestion_model2=result["options"][1] or "",
             suggestion_model3=result["options"][2] or "",
+            raw_options=result["raw_options"]
         )
         
         session.add(new_ai_log)
