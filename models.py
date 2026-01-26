@@ -360,6 +360,7 @@ class MessageCreate(SQLModel):
     content: str
     is_from_patient: bool = True
     ai_suggestion_log_id: Optional[int] = None
+    selected_option: Optional[int] = None # 1, 2, 3 or None
     was_edited_by_human: bool = False
 
     
@@ -387,8 +388,8 @@ class AISuggestionLog(SQLModel, table=True):
     # Metadatos
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    # Relación con el mensaje final (opcional, se llena cuando el terapeuta envía)
-    final_message_id: Optional[int] = Field(default=None, foreign_key="message.id")
+    # Cual de las 3 opciones ha clickado el terapeuta
+    final_option_id: Optional[int] = Field(default=None)
 
 # ============================================================================
 # AUDIT LOG MODELS

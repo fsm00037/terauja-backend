@@ -52,6 +52,7 @@ def llm_models(messages):
         content_model1 = response_model1.choices[0].message.content.strip()
     except Exception as ex:
         print(f"############# Error calling Llama: {ex}")
+        content_model1 = str(ex)
 
     # Qwen
     try:
@@ -65,9 +66,10 @@ def llm_models(messages):
         content_model2 = response_model2.choices[0].message.content.strip()
     except Exception as ex:
         print(f"############# Error calling Qwen: {ex}")
+        content_model2 = str(ex)
 
     # Gemma
-    assert safe_messages[1]["role"] == "user"
+    #assert safe_messages[1]["role"] == "user"
     safe_messages_gemma = clean_messages(messages)
     try:
         response_model3 = client.chat.completions.create(
@@ -79,6 +81,7 @@ def llm_models(messages):
         content_model3 = response_model3.choices[0].message.content.strip()
     except Exception as ex:
         print(f"############# Error calling Gemma: {ex}")
+        content_model3 = str(ex)
     
     return content_model1, content_model2, content_model3
 
@@ -86,6 +89,9 @@ def clean_response(text):
     """
     Limpia la respuesta del modelo eliminando prefijos comunes y texto no deseado.
     """
+    # if "Error code:" in text, return None
+    if "Error code:" in text:
+        return ""
     if not text:
         return ""
     
@@ -117,6 +123,8 @@ def clean_response(text):
     
     # Remover saltos de línea excesivos
     cleaned = " ".join(cleaned.split())
+
+
     
     return cleaned.strip()
 

@@ -54,7 +54,7 @@ def create_message(
         from models import AISuggestionLog
         ai_log = session.get(AISuggestionLog, message.ai_suggestion_log_id)
         if ai_log:
-            ai_log.final_message_id = db_message.id
+            ai_log.final_option_id = message.selected_option
             session.add(ai_log)
             session.commit()
     
