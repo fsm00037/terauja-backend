@@ -53,30 +53,32 @@ def llm_models(messages):
     except Exception as ex:
         print(f"############# Error calling Llama: {ex}")
 
-    # Gemma
-    try:
-        response_model2 = client.chat.completions.create(
-            model=url_prefix + "google/gemma-3-12b-it",
-            messages=safe_messages,
-            max_tokens=256,
-            temperature=0.7
-        )
-        content_model2 = response_model2.choices[0].message.content.strip()
-    except Exception as ex:
-        print(f"############# Error calling Gemma: {ex}")
-
     # Qwen
     try:
-        response_model3 = client.chat.completions.create(
+        response_model2 = client.chat.completions.create(
             model=url_prefix + "Qwen/Qwen3-8B",
             messages=safe_messages,
             max_tokens=256,
             temperature=0.7,
             extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
-        content_model3 = response_model3.choices[0].message.content.strip()
+        content_model2 = response_model2.choices[0].message.content.strip()
     except Exception as ex:
         print(f"############# Error calling Qwen: {ex}")
+
+    # Gemma
+    assert safe_messages[1]["role"] == "user"
+    safe_messages_gemma = clean_messages(messages)
+    try:
+        response_model3 = client.chat.completions.create(
+            model=url_prefix + "google/gemma-3-12b-it",
+            messages=safe_messages_gemma,
+            max_tokens=256,
+            temperature=0.7
+        )
+        content_model3 = response_model3.choices[0].message.content.strip()
+    except Exception as ex:
+        print(f"############# Error calling Gemma: {ex}")
     
     return content_model1, content_model2, content_model3
 
@@ -155,12 +157,12 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
                 messages.append({"role": role, "content": content})
     
     # Si no hay historial válido, usar fallback
-    options = ["¿Cómo te sientes?", "Cuéntame más.", "Te escucho."]
+    fallback_messages = ["Error Modelo 1", "Error Modelo 2", "Error Modelo 3"]
     if len(messages) <= 1:
         print("############# No valid chat history found, returning hardcoded fallbacks.")
         return {
-            "options": options[:3],
-            "raw_options": [content_model1, content_model2, content_model3]
+            "options": fallback_messages,
+            "raw_options": ["", "", ""]
         }
     
     try:
@@ -178,18 +180,17 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
         # Fallback si no hay suficientes opciones válidas
         if len(options) < 3:
             print(f"############# Not enough LLM options ({len(options)}), adding fallbacks.")
-            fallback_messages = ["¿Cómo te sientes?", "Cuéntame más.", "Te escucho."]
             while len(options) < 3:
                 options.append(fallback_messages[len(options)])
         
         return {
-            "options": options[:3],
+            "options": options,
             "raw_options": "Output Model 1: " + str(content_model1) + "\nOutput Model 2: " + str(content_model2) + "\nOutput Model 3: " + str(content_model3)
         }
 
     except Exception as e:
         print(f"############# Error en generate_response_options final step: {e}")
         return {
-            "options": options[:3],
+            "options": fallback_messages,
             "raw_options": [content_model1, content_model2, content_model3]
         }
