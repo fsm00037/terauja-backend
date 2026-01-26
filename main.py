@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
         if not admin:
             print("Creating default Super Admin...")
             super_admin = Psychologist(
-                name="Super Admin",
+                name="Admin",
                 email="admin@psicouja.com",
                 password=hash_password("admin"),
                 role="admin",

@@ -184,7 +184,7 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
         
         return {
             "options": options[:3],
-            "raw_options": [content_model1, content_model2, content_model3]
+            "raw_options": "Output Model 1: " + str(content_model1) + "\nOutput Model 2: " + str(content_model2) + "\nOutput Model 3: " + str(content_model3)
         }
 
     except Exception as e:

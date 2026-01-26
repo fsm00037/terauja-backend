@@ -63,17 +63,6 @@ def update_session(
     
     update_data = session_data.dict(exclude_unset=True)
     
-    if "chat_snapshot" in update_data and update_data["chat_snapshot"] is not None:
-        log_enriquecido = {
-            "config_snapshot": {
-                "ai_style": current_user.ai_style,
-                "ai_tone": current_user.ai_tone,
-                "ai_instructions": current_user.ai_instructions
-            },
-            "messages": update_data["chat_snapshot"]
-        }
-        db_session.chat_snapshot = log_enriquecido
-    
     for key, value in update_data.items():
         if key != "chat_snapshot":
             setattr(db_session, key, value)
