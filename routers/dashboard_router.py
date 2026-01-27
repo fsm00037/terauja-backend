@@ -85,6 +85,11 @@ def get_dashboard_stats(
     )
     q_pending_questionnaires = select(Assignment).where(Assignment.status != "completed")
     
+    q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).where(
+        QuestionnaireCompletion.status == "completed",
+        QuestionnaireCompletion.read_by_therapist == False
+    )
+    
     if psychologist_id:
         q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
             Patient, QuestionnaireCompletion.patient_id == Patient.id
@@ -92,9 +97,17 @@ def get_dashboard_stats(
             Patient.psychologist_id == psychologist_id,
             QuestionnaireCompletion.status == "completed"
         )
+        q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
+            Patient, QuestionnaireCompletion.patient_id == Patient.id
+        ).where(
+            Patient.psychologist_id == psychologist_id,
+            QuestionnaireCompletion.status == "completed",
+            QuestionnaireCompletion.read_by_therapist == False
+        )
         q_pending_questionnaires = q_pending_questionnaires.join(Patient).where(Patient.psychologist_id == psychologist_id)
 
     completed_questionnaires_count = session.exec(q_completed_questionnaires).one()
+    unread_questionnaires_count = session.exec(q_unread_questionnaires).one()
     pending_questionnaires_list = session.exec(q_pending_questionnaires).all()
     
     # Check for expired ones in the pending list
@@ -118,6 +131,7 @@ def get_dashboard_stats(
         "total_patients": len(total_patients),
         "total_messages": len(total_messages),
         "completed_questionnaires": completed_questionnaires_count,
+        "unread_questionnaires": unread_questionnaires_count,
         "pending_questionnaires": pending_count,
         "recent_activity": final_activity,
         "online_patients": len(online_patients)

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import secrets
 from datetime import datetime, timezone
 from database import get_session
-from models import Patient, PatientReadWithAssignments, PatientRead, Psychologist, Message, Assignment
+from models import Patient, PatientReadWithAssignments, PatientRead, Psychologist, Message, Assignment, QuestionnaireCompletion
 from auth import get_current_user, require_admin, get_current_patient
 from logging_utils import log_action
 
@@ -85,6 +85,14 @@ def read_patients(
                 Message.read == False
             )
         ).one()
+
+        unread_questionnaires = session.exec(
+            select(func.count(QuestionnaireCompletion.id)).where(
+                QuestionnaireCompletion.patient_id == p.id,
+                QuestionnaireCompletion.status == "completed",
+                QuestionnaireCompletion.read_by_therapist == False
+            )
+        ).one()
         
         # EXCLUIMOS tanto assignments como is_online para que no choquen
         p_data = p.model_dump(exclude={"assignments", "is_online"})
@@ -93,7 +101,8 @@ def read_patients(
             **p_data,
             is_online=p.is_active_now, # Ahora este es el único valor para is_online
             assignments=p.assignments,
-            unread_messages=unread_count
+            unread_messages=unread_count,
+            unread_questionnaires=unread_questionnaires
         )
         results.append(p_read)
         

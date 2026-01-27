@@ -11,7 +11,7 @@ from services.scheduler import run_scheduler
 load_dotenv()
 
 from database import create_db_and_tables, engine
-from models import Psychologist
+from models import Psychologist, Questionnaire
 from auth import hash_password
 
 from routers import (
@@ -39,7 +39,6 @@ async def lifespan(app: FastAPI):
     with Session(engine) as session:
         admin = session.exec(select(Psychologist).where(Psychologist.role == "admin")).first()
         if not admin:
-            print("Creating default Super Admin...")
             super_admin = Psychologist(
                 name="Admin",
                 email="admin@psicouja.com",
@@ -49,9 +48,26 @@ async def lifespan(app: FastAPI):
             )
             session.add(super_admin)
             session.commit()
-            print("Default Admin Created: admin@psicouja.com / admin")
     
-            print("Default Admin Created: admin@psicouja.com / admin")
+        # Create Default EMA Questionnaire if it doesn't exist
+        ema = session.exec(select(Questionnaire).where(Questionnaire.title == "EMA")).first()
+        if not ema:
+            ema_q = Questionnaire(
+                title="EMA",
+                icon="Activity",
+                description="Evaluación Ecológica Momentánea diaria",
+                questions=[
+                    {"id": "1", "text": "A continuación encontrarás una serie de preguntas sobre cómo te has sentido y cómo has actuado en las últimas dos horas. Lee cada pregunta con atención y marca el número que mejor describa tu experiencia. No hay respuestas correctas o incorrectas.\nEn las últimas dos horas, ¿has sentido poco interés o placer en hacer las cosas?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada", "maxLabel": "Todo el tiempo"},
+                    {"id": "2", "text": "En las últimas dos horas, ¿te has sentido desanimado, deprimido o desesperanzado?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada", "maxLabel": "Todo el tiempo"},
+                    {"id": "3", "text": "En las últimas dos horas, ¿te has sentido nervioso, ansioso o con los nervios de punta?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada", "maxLabel": "Todo el tiempo"},
+                    {"id": "4", "text": "En las últimas dos horas, ¿has sentido que no podías parar de preocuparte?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada", "maxLabel": "Todo el tiempo"},
+                    {"id": "5", "text": "En las dos últimas horas, ¿has evitado hacer algo que pudiera traerte pensamientos o sentimientos difíciles?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada", "maxLabel": "Todo el tiempo"},
+                    {"id": "6", "text": "En las últimas dos horas, ¿has sentido que ibas en “piloto automático” sin prestar atención a lo que hacías?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada", "maxLabel": "Todo el tiempo"},
+                    {"id": "7", "text": "En las últimas dos horas, ¿has actuado de forma consistente con cómo deseas vivir tu vida?", "type": "likert", "min": 1, "max": 7, "minLabel": "Nada consistente", "maxLabel": "Totalmente consistente"}
+                ]
+            )
+            session.add(ema_q)
+            session.commit()
     
     # Start Background Scheduler
     asyncio.create_task(run_scheduler())
@@ -95,7 +111,6 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting server on 0.0.0.0:8001")
     for route in app.routes:
         print(f"Registered route: {route.path}")
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

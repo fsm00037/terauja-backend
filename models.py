@@ -141,6 +141,7 @@ class PatientReadWithAssignments(SQLModel):
     psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
     unread_messages: int = 0
+    unread_questionnaires: int = 0
     assignments: List["AssignmentWithQuestionnaire"] = []
 
 
@@ -205,6 +206,7 @@ class QuestionnaireCompletion(SQLModel, table=True):
     completed_at: Optional[datetime] = Field(default=None)
     status: str = Field(default="pending") # pending, completed, missed
     is_delayed: bool = Field(default=False)
+    read_by_therapist: bool = Field(default=False)
 
     patient: "Patient" = Relationship(back_populates="questionnaire_completions")
     assignment: "Assignment" = Relationship()

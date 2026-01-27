@@ -468,3 +468,21 @@ def update_completion(
     )
     
     return completion
+
+@router.patch("/completions/{completion_id}/read")
+def mark_completion_as_read(
+    completion_id: int, 
+    session: Session = Depends(get_session), 
+    current_user: Psychologist = Depends(get_current_user)
+):
+    completion = session.get(QuestionnaireCompletion, completion_id)
+    if not completion:
+        raise HTTPException(status_code=404, detail="Completion not found")
+        
+    verify_patient_access(completion.patient_id, current_user, session)
+    
+    completion.read_by_therapist = True
+    session.add(completion)
+    session.commit()
+    
+    return {"ok": True}
