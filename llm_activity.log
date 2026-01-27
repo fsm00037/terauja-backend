@@ -34,3 +34,13 @@
 2026-01-27 09:56:51,589 - INFO - Gemma call successful.
 2026-01-27 09:56:51,589 - INFO - --- LLM calls completed ---
 2026-01-27 09:56:51,589 - INFO - Returning 3 response options.
+2026-01-27 11:13:37,290 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación'}, {'role': 'user', 'content': 'hola'}]
+2026-01-27 11:13:37,291 - INFO - Calling Llama model...
+2026-01-27 11:13:40,035 - INFO - Llama call successful.
+2026-01-27 11:13:40,035 - INFO - Calling Qwen model...
+2026-01-27 11:13:40,593 - INFO - Qwen call successful.
+2026-01-27 11:13:40,593 - INFO - Preparing for Gemma call...
+2026-01-27 11:13:40,593 - INFO - Calling Gemma model...
+2026-01-27 11:13:40,842 - INFO - Gemma call successful.
+2026-01-27 11:13:40,842 - INFO - --- LLM calls completed ---
+2026-01-27 11:13:40,842 - INFO - Returning 3 response options.
