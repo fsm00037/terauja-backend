@@ -18,7 +18,8 @@ def get_assessment_stats(
 ):
     verify_patient_access(patient_id, current_user, session)
     statement = select(AssessmentStat).where(
-        AssessmentStat.patient_id == patient_id
+        AssessmentStat.patient_id == patient_id,
+        AssessmentStat.deleted_at == None
     ).order_by(AssessmentStat.created_at.desc())
     return session.exec(statement).all()
 
@@ -49,7 +50,7 @@ def update_assessment_stat(
     current_user: Psychologist = Depends(get_current_user)
 ):
     stat = session.get(AssessmentStat, stat_id)
-    if not stat:
+    if not stat or stat.deleted_at:
         raise HTTPException(status_code=404, detail="Assessment stat not found")
     
     verify_patient_access(stat.patient_id, current_user, session)
@@ -78,11 +79,14 @@ def delete_assessment_stat(
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
+    from datetime import datetime, timezone
     stat = session.get(AssessmentStat, stat_id)
     if not stat:
         raise HTTPException(status_code=404, detail="Assessment stat not found")
     verify_patient_access(stat.patient_id, current_user, session)
-    session.delete(stat)
+    
+    stat.deleted_at = datetime.now(timezone.utc)
+    session.add(stat)
     session.commit()
     
     log_action(

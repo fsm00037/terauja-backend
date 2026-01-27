@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/psychologists", response_model=List[PsychologistRead])
 def get_psychologists(session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
-    return session.exec(select(Psychologist).where(Psychologist.role != "superadmin")).all()
+    return session.exec(select(Psychologist).where(Psychologist.role != "superadmin", Psychologist.deleted_at == None)).all()
 
 @router.post("/psychologists")
 def create_psychologist(psychologist: Psychologist, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
@@ -46,14 +46,15 @@ def delete_psychologist(user_id: int, session: Session = Depends(get_session), c
         raise HTTPException(status_code=404, detail="User not found")
     
     # Unassign patients
-    patients = session.exec(select(Patient).where(Patient.psychologist_id == user_id)).all()
+    patients = session.exec(select(Patient).where(Patient.psychologist_id == user_id, Patient.deleted_at == None)).all()
     for p in patients:
         p.psychologist_id = None
         p.psychologist_name = "Sin Asignar"
         p.psychologist_schedule = ""
         session.add(p)
-        
-    session.delete(user)
+    
+    user.deleted_at = datetime.now(timezone.utc)
+    session.add(user)
     session.commit()
     
     log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_PSYCHOLOGIST", details={"deleted_user_id": user_id})

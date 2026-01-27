@@ -36,7 +36,7 @@ def read_questionnaires(
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
-    questionnaires = session.exec(select(Questionnaire).offset(offset).limit(limit)).all()
+    questionnaires = session.exec(select(Questionnaire).where(Questionnaire.deleted_at == None).offset(offset).limit(limit)).all()
     return questionnaires
 
 @router.put("/{questionnaire_id}", response_model=QuestionnaireRead)
@@ -47,7 +47,7 @@ def update_questionnaire(
     current_user: Psychologist = Depends(get_current_user)
 ):
     questionnaire = session.get(Questionnaire, questionnaire_id)
-    if not questionnaire:
+    if not questionnaire or questionnaire.deleted_at:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
     
     questionnaire.title = updated_q.title
@@ -68,10 +68,13 @@ def delete_questionnaire(
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
+    from datetime import datetime, timezone
     questionnaire = session.get(Questionnaire, questionnaire_id)
     if not questionnaire:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
-    session.delete(questionnaire)
+        
+    questionnaire.deleted_at = datetime.now(timezone.utc)
+    session.add(questionnaire)
     session.commit()
     
     log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_QUESTIONNAIRE", details={"questionnaire_id": questionnaire_id})

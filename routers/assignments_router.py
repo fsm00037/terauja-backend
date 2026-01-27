@@ -102,9 +102,10 @@ def read_assignments(
     current_user: Psychologist = Depends(get_current_user)
 ):
     # Filter by user's patients if not admin
+    base_query = select(Assignment).where(Assignment.deleted_at == None)
     if current_user.role != "admin":
         assignments = session.exec(
-            select(Assignment)
+            base_query
             .join(Patient)
             .where(Patient.psychologist_id == current_user.id)
             .options(selectinload(Assignment.questionnaire))
@@ -112,7 +113,7 @@ def read_assignments(
         ).all()
     else:
         assignments = session.exec(
-            select(Assignment)
+            base_query
             .options(selectinload(Assignment.questionnaire))
             .offset(offset).limit(limit)
         ).all()
@@ -143,18 +144,21 @@ def get_patient_assignments(
     )
     results = session.exec(statement)
     patient = results.first()
-    if not patient:
+    if not patient or patient.deleted_at:
         raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Filter deleted assignments
+    active_assignments = [a for a in patient.assignments if a.deleted_at is None]
     
     # Check for expired assignments
     changed = False
-    for a in patient.assignments:
+    for a in active_assignments:
         if check_and_update_assignment_expiry(a, session):
             changed = True
     if changed:
         session.commit()
         
-    return patient.assignments
+    return active_assignments
 
 @router.get("/patient-admin/{patient_id}", response_model=List[AssignmentWithQuestionnaire])
 def get_patient_assignments_admin(
@@ -164,7 +168,7 @@ def get_patient_assignments_admin(
 ):
     """Get assignments for a patient by patient_id (for admin view)"""
     verify_patient_access(patient_id, current_user, session)
-    statement = select(Assignment).where(Assignment.patient_id == patient_id).options(
+    statement = select(Assignment).where(Assignment.patient_id == patient_id, Assignment.deleted_at == None).options(
         selectinload(Assignment.questionnaire)
     ).order_by(Assignment.assigned_at.desc())
     assignments = session.exec(statement).all()
@@ -187,7 +191,7 @@ def submit_assignment(
     current_user = Depends(get_current_patient)
 ):
     assignment = session.get(Assignment, assignment_id)
-    if not assignment:
+    if not assignment or assignment.deleted_at:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
     # Register completion
@@ -198,6 +202,7 @@ def submit_assignment(
         select(QuestionnaireCompletion)
         .where(QuestionnaireCompletion.assignment_id == assignment_id)
         .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
+        .where(QuestionnaireCompletion.deleted_at == None)
         .order_by(QuestionnaireCompletion.scheduled_at)
     )
     pending_completion = session.exec(statement).first()
@@ -240,6 +245,7 @@ def submit_assignment(
         select(QuestionnaireCompletion)
         .where(QuestionnaireCompletion.assignment_id == assignment_id)
         .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
+        .where(QuestionnaireCompletion.deleted_at == None)
         .order_by(QuestionnaireCompletion.scheduled_at)
     ).first()
     
@@ -271,6 +277,7 @@ def get_questionnaire_completions(
         select(QuestionnaireCompletion)
         .where(QuestionnaireCompletion.patient_id == patient_id)
         .where(QuestionnaireCompletion.status == "pending")
+        .where(QuestionnaireCompletion.deleted_at == None)
     )
     pending_completions = session.exec(pending_statement).all()
     
@@ -287,7 +294,7 @@ def get_questionnaire_completions(
 
     statement = (
         select(QuestionnaireCompletion)
-        .where(QuestionnaireCompletion.patient_id == patient_id)
+        .where(QuestionnaireCompletion.patient_id == patient_id, QuestionnaireCompletion.deleted_at == None)
         .options(selectinload(QuestionnaireCompletion.questionnaire))
         .order_by(QuestionnaireCompletion.scheduled_at.desc())
     )
@@ -313,6 +320,7 @@ def get_my_pending_assignments(
         .where(QuestionnaireCompletion.patient_id == current_user.id)
         .where(QuestionnaireCompletion.status == "pending")
         .where(QuestionnaireCompletion.scheduled_at <= now)
+        .where(QuestionnaireCompletion.deleted_at == None)
     )
     due_completions = session.exec(statement).all()
     
@@ -328,6 +336,7 @@ def get_my_pending_assignments(
         select(QuestionnaireCompletion)
         .where(QuestionnaireCompletion.patient_id == current_user.id)
         .where(QuestionnaireCompletion.status == "sent")
+        .where(QuestionnaireCompletion.deleted_at == None)
         .options(selectinload(QuestionnaireCompletion.assignment))
     )
     potential_missed = session.exec(statement_missed).all()
@@ -347,6 +356,7 @@ def get_my_pending_assignments(
         select(QuestionnaireCompletion)
         .where(QuestionnaireCompletion.patient_id == current_user.id)
         .where(or_(QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed")) 
+        .where(QuestionnaireCompletion.deleted_at == None)
         .options(selectinload(QuestionnaireCompletion.questionnaire))
         .options(selectinload(QuestionnaireCompletion.assignment))
         .order_by(QuestionnaireCompletion.scheduled_at)
@@ -374,7 +384,7 @@ def update_assignment_status(
     current_user: Psychologist = Depends(get_current_user)
 ):
     assignment = session.get(Assignment, assignment_id)
-    if not assignment:
+    if not assignment or assignment.deleted_at:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
     verify_patient_access(assignment.patient_id, current_user, session)
@@ -387,16 +397,18 @@ def update_assignment_status(
             from datetime import datetime
             now = datetime.utcnow()
             
-            # Delete future pending completions
+            # Soft delete future pending completions
             future_pending = session.exec(
                 select(QuestionnaireCompletion)
                 .where(QuestionnaireCompletion.assignment_id == assignment_id)
                 .where(QuestionnaireCompletion.status == "pending")
                 .where(QuestionnaireCompletion.scheduled_at > now)
+                .where(QuestionnaireCompletion.deleted_at == None)
             ).all()
             
             for fp in future_pending:
-                session.delete(fp)
+                fp.deleted_at = datetime.now(timezone.utc)
+                session.add(fp)
                 
             # Update end date to now to reflect early finish
             # assignment.end_date = now.strftime("%Y-%m-%d") # Optional: depends on business rule? User said "up to date"
@@ -416,20 +428,26 @@ def update_assignment_status(
     return assignment
 
 @router.delete("/{assignment_id}")
-def delete_assignment(assignment_id: int, session: Session = Depends(get_session)):
+def delete_assignment(assignment_id: int, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
+    from datetime import datetime, timezone
     assignment = session.get(Assignment, assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
-    # Cascade delete completions
-    completions = session.exec(select(QuestionnaireCompletion).where(QuestionnaireCompletion.assignment_id == assignment_id)).all()
+    verify_patient_access(assignment.patient_id, current_user, session)
+    
+    # Cascade soft delete completions
+    completions = session.exec(select(QuestionnaireCompletion).where(QuestionnaireCompletion.assignment_id == assignment_id, QuestionnaireCompletion.deleted_at == None)).all()
+    now = datetime.now(timezone.utc)
     for completion in completions:
-        session.delete(completion)
+        completion.deleted_at = now
+        session.add(completion)
         
-    session.delete(assignment)
+    assignment.deleted_at = now
+    session.add(assignment)
     session.commit()
     
-    log_action(session, 0, "system", "Unknown", "DELETE_ASSIGNMENT", details={"assignment_id": assignment_id})
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_ASSIGNMENT", details={"assignment_id": assignment_id})
     
     return {"ok": True}
 
@@ -441,7 +459,7 @@ def update_completion(
     current_user: Psychologist = Depends(get_current_user)
 ):
     completion = session.get(QuestionnaireCompletion, completion_id)
-    if not completion:
+    if not completion or completion.deleted_at:
         raise HTTPException(status_code=404, detail="Completion not found")
         
     verify_patient_access(completion.patient_id, current_user, session)
@@ -476,7 +494,7 @@ def mark_completion_as_read(
     current_user: Psychologist = Depends(get_current_user)
 ):
     completion = session.get(QuestionnaireCompletion, completion_id)
-    if not completion:
+    if not completion or completion.deleted_at:
         raise HTTPException(status_code=404, detail="Completion not found")
         
     verify_patient_access(completion.patient_id, current_user, session)

@@ -43,7 +43,8 @@ def get_sessions(
     # Filter by both patient_id AND psychologist_id
     statement = select(TherapySession).where(
         TherapySession.patient_id == patient_id,
-        TherapySession.psychologist_id == current_user.id
+        TherapySession.psychologist_id == current_user.id,
+        TherapySession.deleted_at == None
     ).order_by(TherapySession.date.desc())
     
     return session.exec(statement).all()
@@ -56,7 +57,7 @@ def update_session(
     current_user: Psychologist = Depends(get_current_user)
 ):
     db_session = session.get(TherapySession, session_id)
-    if not db_session:
+    if not db_session or db_session.deleted_at:
         raise HTTPException(status_code=404, detail="Session not found")
     
     verify_patient_access(db_session.patient_id, current_user, session)
@@ -79,13 +80,15 @@ def delete_session(
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
+    from datetime import datetime, timezone
     db_session = session.get(TherapySession, session_id)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
     
     verify_patient_access(db_session.patient_id, current_user, session)
     
-    session.delete(db_session)
+    db_session.deleted_at = datetime.now(timezone.utc)
+    session.add(db_session)
     session.commit()
     
     log_action(

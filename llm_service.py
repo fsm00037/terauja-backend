@@ -1,6 +1,22 @@
 from openai import OpenAI
 from dotenv import load_dotenv
+import logging
 import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(BASE_DIR, "llm_activity.log")
+
+# Crear handler con encoding explícito
+handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+
+# Configurar el logger
+logger = logging.getLogger("llm_service")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+logger.propagate = False # Evitar duplicados en terminal
 
 load_dotenv()
 
@@ -36,6 +52,7 @@ def llm_models(messages):
 
     # Normalizamos los mensajes antes de enviarlos
     safe_messages = clean_messages(messages)
+    logger.info(f"--- Starting LLM call with {len(safe_messages)} messages ---{safe_messages}")
 
     content_model1 = None
     content_model2 = None
@@ -43,6 +60,7 @@ def llm_models(messages):
 
     # Llama
     try:
+        logger.info("Calling Llama model...")
         response_model1 = client.chat.completions.create(
             model=url_prefix + "meta-llama/Llama-3.1-8B-Instruct",
             messages=safe_messages,
@@ -50,12 +68,14 @@ def llm_models(messages):
             temperature=0.7
         )
         content_model1 = response_model1.choices[0].message.content.strip()
+        logger.info("Llama call successful.")
     except Exception as ex:
-        print(f"############# Error calling Llama: {ex}")
+        logger.error(f"Error calling Llama: {ex}")
         content_model1 = str(ex)
 
     # Qwen
     try:
+        logger.info("Calling Qwen model...")
         response_model2 = client.chat.completions.create(
             model=url_prefix + "Qwen/Qwen3-8B",
             messages=safe_messages,
@@ -64,14 +84,17 @@ def llm_models(messages):
             extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
         content_model2 = response_model2.choices[0].message.content.strip()
+        logger.info("Qwen call successful.")
     except Exception as ex:
-        print(f"############# Error calling Qwen: {ex}")
+        logger.error(f"Error calling Qwen: {ex}")
         content_model2 = str(ex)
 
     # Gemma
-    #assert safe_messages[1]["role"] == "user"
+    logger.info("Preparing for Gemma call...")
+    assert safe_messages[1]["role"] == "user"
     safe_messages_gemma = clean_messages(messages)
     try:
+        logger.info("Calling Gemma model...")
         response_model3 = client.chat.completions.create(
             model=url_prefix + "google/gemma-3-12b-it",
             messages=safe_messages_gemma,
@@ -79,10 +102,12 @@ def llm_models(messages):
             temperature=0.7
         )
         content_model3 = response_model3.choices[0].message.content.strip()
+        logger.info("Gemma call successful.")
     except Exception as ex:
-        print(f"############# Error calling Gemma: {ex}")
+        logger.error(f"Error calling Gemma: {ex}")
         content_model3 = str(ex)
     
+    logger.info("--- LLM calls completed ---")
     return content_model1, content_model2, content_model3
 
 def clean_response(text):
@@ -124,19 +149,12 @@ def clean_response(text):
     # Remover saltos de línea excesivos
     cleaned = " ".join(cleaned.split())
 
-
-    
     return cleaned.strip()
 
 def generate_response_options(chat_history, therapist_style=None, therapist_tone=None, therapist_instructions=None):
     
     # Construir el mensaje del sistema
-    system_message = """Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.
-    IMPORTANTE: 
-    - Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales
-    - NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares
-    - Tu respuesta debe ser una continuación natural de la conversación"""
-    
+    system_message = """Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación"""
     # Añadir configuración del terapeuta al mensaje del sistema
     if therapist_style:
         system_message += f"\n\nTu estilo terapéutico es: {therapist_style}"
@@ -167,12 +185,14 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
     # Si no hay historial válido, usar fallback
     fallback_messages = ["Error Modelo 1", "Error Modelo 2", "Error Modelo 3"]
     if len(messages) <= 1:
-        print("############# No valid chat history found, returning hardcoded fallbacks.")
+        logger.warning("No valid chat history found, returning hardcoded fallbacks.")
         return {
             "options": fallback_messages,
             "raw_options": ["", "", ""]
         }
-    
+    content_model1 = None
+    content_model2 = None
+    content_model3 = None
     try:
         content_model1, content_model2, content_model3 = llm_models(messages)
         print(f"LLM Result: Model1={bool(content_model1)}, Model2={bool(content_model2)}, Model3={bool(content_model3)}")
@@ -187,18 +207,19 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
         
         # Fallback si no hay suficientes opciones válidas
         if len(options) < 3:
-            print(f"############# Not enough LLM options ({len(options)}), adding fallbacks.")
+            logger.warning(f"Not enough LLM options ({len(options)}), adding fallbacks.")
             while len(options) < 3:
                 options.append(fallback_messages[len(options)])
         
+        logger.info(f"Returning {len(options)} response options.")
         return {
             "options": options,
             "raw_options": "Output Model 1: " + str(content_model1) + "\nOutput Model 2: " + str(content_model2) + "\nOutput Model 3: " + str(content_model3)
         }
 
     except Exception as e:
-        print(f"############# Error en generate_response_options final step: {e}")
+        logger.error(f"Error in generate_response_options final step: {e}")
         return {
             "options": fallback_messages,
-            "raw_options": [content_model1, content_model2, content_model3]
+            "raw_options": "Output Model 1: " + str(content_model1) + "\nOutput Model 2: " + str(content_model2) + "\nOutput Model 3: " + str(content_model3)
         }

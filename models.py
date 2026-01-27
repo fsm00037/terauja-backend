@@ -19,6 +19,7 @@ class Psychologist(SQLModel, table=True):
     total_online_seconds: int = Field(default=0)
     photo_url: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
     
     # AI Configuration
     ai_style: Optional[str] = Field(default=None)
@@ -93,6 +94,7 @@ class Patient(SQLModel, table=True):
     clinical_summary: Optional[str] = None
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
 
     assignments: List["Assignment"] = Relationship(back_populates="patient")
     sessions: List["Session"] = Relationship(back_populates="patient")
@@ -156,6 +158,7 @@ class Questionnaire(SQLModel, table=True):
     description: Optional[str] = None
     questions: List[Dict] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
 
     assignments: List["Assignment"] = Relationship(back_populates="questionnaire")
 
@@ -180,6 +183,7 @@ class Assignment(SQLModel, table=True):
     status: str = Field(default="active") 
     answers: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
     assigned_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
     
     # Scheduling Fields
     start_date: Optional[str] = None
@@ -207,6 +211,7 @@ class QuestionnaireCompletion(SQLModel, table=True):
     status: str = Field(default="pending") # pending, completed, missed
     is_delayed: bool = Field(default=False)
     read_by_therapist: bool = Field(default=False)
+    deleted_at: Optional[datetime] = Field(default=None)
 
     patient: "Patient" = Relationship(back_populates="questionnaire_completions")
     assignment: "Assignment" = Relationship()
@@ -251,6 +256,7 @@ class Session(SQLModel, table=True):
         default=None, 
         sa_column=Column(MutableList.as_mutable(JSON)) 
     )
+    deleted_at: Optional[datetime] = Field(default=None)
     # Privacy field
     patient: Patient = Relationship(back_populates="sessions")
 
@@ -292,6 +298,7 @@ class AssessmentStat(SQLModel, table=True):
     color: str = "teal"  # teal, amber, coral
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
 
 
 class AssessmentStatRead(SQLModel):
@@ -316,6 +323,7 @@ class Note(SQLModel, table=True):
     content: str
     color: str = "bg-white"
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
     
     # Privacy field
     psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
@@ -342,6 +350,7 @@ class Message(SQLModel, table=True):
     is_from_patient: bool = True
     read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
     
     used_ai_suggestion: bool = Field(default=False)
     was_edited_by_human: bool = Field(default=False)
@@ -389,6 +398,7 @@ class AISuggestionLog(SQLModel, table=True):
 
     # Metadatos
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
     
     # Cual de las 3 opciones ha clickado el terapeuta
     final_option_id: Optional[int] = Field(default=None)
@@ -406,6 +416,7 @@ class AuditLog(SQLModel, table=True):
     details: Optional[str] = None  # JSON string or text details
     ip_address: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)
 # ============================================================================
 # PUSH SUBSCRIPTION MODELS
 # ============================================================================
@@ -417,3 +428,4 @@ class PushSubscription(SQLModel, table=True):
     p256dh: str
     auth: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = Field(default=None)

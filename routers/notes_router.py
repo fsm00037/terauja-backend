@@ -43,7 +43,8 @@ def get_notes(
     # Filter by both patient_id AND psychologist_id
     statement = select(Note).where(
         Note.patient_id == patient_id,
-        Note.psychologist_id == current_user.id
+        Note.psychologist_id == current_user.id,
+        Note.deleted_at == None
     ).order_by(Note.created_at.desc())
     
     return session.exec(statement).all()
@@ -54,11 +55,14 @@ def delete_note(
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
+    from datetime import datetime, timezone
     note = session.get(Note, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     verify_patient_access(note.patient_id, current_user, session)
-    session.delete(note)
+    
+    note.deleted_at = datetime.now(timezone.utc)
+    session.add(note)
     session.commit()
     
     log_action(

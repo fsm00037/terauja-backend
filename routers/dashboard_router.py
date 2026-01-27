@@ -20,20 +20,22 @@ def get_dashboard_stats(
     if current_user.role != "admin":
         psychologist_id = current_user.id
     
-    # Base queries
-    q_patients = select(Patient)
-    q_messages = select(Message)
-    q_recent_msgs = select(Message).order_by(Message.created_at.desc()).limit(5)
-    q_recent_assigns = select(Assignment).order_by(Assignment.assigned_at.desc()).limit(5)
+    # Base queries - Filtering deleted_at == None
+    q_patients = select(Patient).where(Patient.deleted_at == None)
+    q_messages = select(Message).where(Message.deleted_at == None)
+    q_recent_msgs = select(Message).where(Message.deleted_at == None).order_by(Message.created_at.desc()).limit(5)
+    q_recent_assigns = select(Assignment).where(Assignment.deleted_at == None).order_by(Assignment.assigned_at.desc()).limit(5)
     
     if psychologist_id:
         q_patients = q_patients.where(Patient.psychologist_id == psychologist_id)
-        q_messages = select(Message).join(Patient).where(Patient.psychologist_id == psychologist_id)
+        q_messages = select(Message).join(Patient).where(Patient.psychologist_id == psychologist_id, Message.deleted_at == None)
         q_recent_msgs = select(Message).join(Patient).where(
-            Patient.psychologist_id == psychologist_id
+            Patient.psychologist_id == psychologist_id,
+            Message.deleted_at == None
         ).order_by(Message.created_at.desc()).limit(5)
         q_recent_assigns = select(Assignment).join(Patient).where(
-            Patient.psychologist_id == psychologist_id
+            Patient.psychologist_id == psychologist_id,
+            Assignment.deleted_at == None
         ).order_by(Assignment.assigned_at.desc()).limit(5)
     
     total_patients = session.exec(q_patients).all()
@@ -45,6 +47,7 @@ def get_dashboard_stats(
     
     for msg in recent_messages:
         p = session.get(Patient, msg.patient_id)
+        if p and p.deleted_at: p = None # Ignore deleted patient snapshot
         p_name = p.patient_code if p else "Unknown"
         activity_log.append({
             "type": "message",
@@ -57,10 +60,12 @@ def get_dashboard_stats(
         
     for assign in recent_assignments:
         p = session.get(Patient, assign.patient_id)
+        if p and p.deleted_at: p = None
         p_name = p.patient_code if p else "Unknown"
         q_title = "Cuestionario"
         if assign.questionnaire_id:
             q = session.get(Questionnaire, assign.questionnaire_id)
+            if q and q.deleted_at: q = None
             if q: q_title = q.title
         
         action = f"Asignada {q_title}"
@@ -81,13 +86,15 @@ def get_dashboard_stats(
     final_activity = activity_log[:10]
     
     q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).where(
-        QuestionnaireCompletion.status == "completed"
+        QuestionnaireCompletion.status == "completed",
+        QuestionnaireCompletion.deleted_at == None
     )
-    q_pending_questionnaires = select(Assignment).where(Assignment.status != "completed")
+    q_pending_questionnaires = select(Assignment).where(Assignment.status != "completed", Assignment.deleted_at == None)
     
     q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).where(
         QuestionnaireCompletion.status == "completed",
-        QuestionnaireCompletion.read_by_therapist == False
+        QuestionnaireCompletion.read_by_therapist == False,
+        QuestionnaireCompletion.deleted_at == None
     )
     
     if psychologist_id:
@@ -95,17 +102,19 @@ def get_dashboard_stats(
             Patient, QuestionnaireCompletion.patient_id == Patient.id
         ).where(
             Patient.psychologist_id == psychologist_id,
-            QuestionnaireCompletion.status == "completed"
+            QuestionnaireCompletion.status == "completed",
+            QuestionnaireCompletion.deleted_at == None
         )
         q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
             Patient, QuestionnaireCompletion.patient_id == Patient.id
         ).where(
             Patient.psychologist_id == psychologist_id,
             QuestionnaireCompletion.status == "completed",
-            QuestionnaireCompletion.read_by_therapist == False
+            QuestionnaireCompletion.read_by_therapist == False,
+            QuestionnaireCompletion.deleted_at == None
         )
         q_pending_questionnaires = q_pending_questionnaires.join(Patient).where(Patient.psychologist_id == psychologist_id)
-
+    
     completed_questionnaires_count = session.exec(q_completed_questionnaires).one()
     unread_questionnaires_count = session.exec(q_unread_questionnaires).one()
     pending_questionnaires_list = session.exec(q_pending_questionnaires).all()
@@ -122,7 +131,7 @@ def get_dashboard_stats(
     pending_count = len([a for a in pending_questionnaires_list if a.status != "completed"])
 
     # Online Patients Count
-    q_online = select(Patient).where(Patient.is_online == True)
+    q_online = select(Patient).where(Patient.is_online == True, Patient.deleted_at == None)
     if psychologist_id:
         q_online = q_online.where(Patient.psychologist_id == psychologist_id)
     online_patients = session.exec(q_online).all()

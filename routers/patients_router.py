@@ -67,7 +67,7 @@ def read_patients(
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
-    query = select(Patient).options(selectinload(Patient.assignments).selectinload(Assignment.questionnaire))
+    query = select(Patient).where(Patient.deleted_at == None).options(selectinload(Patient.assignments).selectinload(Assignment.questionnaire))
     
     if current_user.role != "admin":
         query = query.where(Patient.psychologist_id == current_user.id)
@@ -82,7 +82,8 @@ def read_patients(
             select(func.count(Message.id)).where(
                 Message.patient_id == p.id,
                 Message.is_from_patient == True,
-                Message.read == False
+                Message.read == False,
+                Message.deleted_at == None
             )
         ).one()
 
@@ -90,7 +91,8 @@ def read_patients(
             select(func.count(QuestionnaireCompletion.id)).where(
                 QuestionnaireCompletion.patient_id == p.id,
                 QuestionnaireCompletion.status == "completed",
-                QuestionnaireCompletion.read_by_therapist == False
+                QuestionnaireCompletion.read_by_therapist == False,
+                QuestionnaireCompletion.deleted_at == None
             )
         ).one()
         
@@ -100,13 +102,73 @@ def read_patients(
         p_read = PatientReadWithAssignments(
             **p_data,
             is_online=p.is_active_now, # Ahora este es el único valor para is_online
-            assignments=p.assignments,
+            assignments=[a for a in p.assignments if a.deleted_at is None],
             unread_messages=unread_count,
             unread_questionnaires=unread_questionnaires
         )
         results.append(p_read)
         
     return results
+
+@router.delete("/patients/{patient_id}")
+def delete_patient(
+    patient_id: int, 
+    session: Session = Depends(get_session), 
+    current_user: Psychologist = Depends(get_current_user)
+):
+    from models import Assignment, QuestionnaireCompletion, Session as TherapySession, Note, Message, AssessmentStat
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+        
+    from auth import verify_patient_access
+    verify_patient_access(patient_id, current_user, session)
+    
+    now = datetime.now(timezone.utc)
+    
+    # 1. Cascade soft delete to all related entities
+    # Assignments and their completions
+    assignments = session.exec(select(Assignment).where(Assignment.patient_id == patient_id, Assignment.deleted_at == None)).all()
+    for a in assignments:
+        a.deleted_at = now
+        session.add(a)
+        # Completions
+        completions = session.exec(select(QuestionnaireCompletion).where(QuestionnaireCompletion.assignment_id == a.id, QuestionnaireCompletion.deleted_at == None)).all()
+        for c in completions:
+            c.deleted_at = now
+            session.add(c)
+            
+    # Sessions
+    sessions = session.exec(select(TherapySession).where(TherapySession.patient_id == patient_id, TherapySession.deleted_at == None)).all()
+    for s in sessions:
+        s.deleted_at = now
+        session.add(s)
+        
+    # Notes
+    notes = session.exec(select(Note).where(Note.patient_id == patient_id, Note.deleted_at == None)).all()
+    for n in notes:
+        n.deleted_at = now
+        session.add(n)
+        
+    # Messages
+    messages = session.exec(select(Message).where(Message.patient_id == patient_id, Message.deleted_at == None)).all()
+    for m in messages:
+        m.deleted_at = now
+        session.add(m)
+        
+    # Assessment Stats
+    stats = session.exec(select(AssessmentStat).where(AssessmentStat.patient_id == patient_id, AssessmentStat.deleted_at == None)).all()
+    for st in stats:
+        st.deleted_at = now
+        session.add(st)
+    
+    # Finally delete the patient
+    patient.deleted_at = now
+    session.add(patient)
+    session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_PATIENT_CASCADE", details={"patient_id": patient_id})
+    return {"ok": True}
 
 @router.patch("/patients/{patient_id}/assign")
 def assign_patient(patient_id: int, req: AssignRequest, session: Session = Depends(get_session), current_user: Psychologist = Depends(require_admin)):
