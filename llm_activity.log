@@ -54,3 +54,342 @@
 2026-01-27 11:56:27,189 - INFO - Gemma call successful.
 2026-01-27 11:56:27,189 - INFO - --- LLM calls completed ---
 2026-01-27 11:56:27,189 - INFO - Returning 3 response options.
+2026-01-28 13:38:45,434 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:38:46,939 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:38:47,435 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:38:47,824 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:38:47,993 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:38:52,750 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:38:52,750 - INFO - Calling Llama model...
+2026-01-28 13:38:54,629 - INFO - Llama call successful.
+2026-01-28 13:38:54,629 - INFO - Calling Qwen model...
+2026-01-28 13:38:56,294 - INFO - Qwen call successful.
+2026-01-28 13:38:56,294 - INFO - Preparing for Gemma call...
+2026-01-28 13:38:56,294 - ERROR - Error in generate_response_options final step: 
+2026-01-28 13:39:49,466 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:39:49,468 - INFO - Calling Llama model...
+2026-01-28 13:39:52,139 - INFO - Llama call successful.
+2026-01-28 13:39:52,139 - INFO - Calling Qwen model...
+2026-01-28 13:39:53,512 - INFO - Qwen call successful.
+2026-01-28 13:39:53,512 - INFO - Preparing for Gemma call...
+2026-01-28 13:39:53,513 - ERROR - Error in generate_response_options final step: 
+2026-01-28 13:40:58,589 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:40:58,589 - INFO - Calling Llama model...
+2026-01-28 13:41:00,128 - INFO - Llama call successful.
+2026-01-28 13:41:00,128 - INFO - Calling Qwen model...
+2026-01-28 13:41:01,332 - INFO - Qwen call successful.
+2026-01-28 13:41:01,332 - INFO - Preparing for Gemma call...
+2026-01-28 13:41:01,332 - ERROR - Error in generate_response_options final step: 
+2026-01-28 13:41:49,063 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:41:49,063 - INFO - Calling Llama model...
+2026-01-28 13:41:50,896 - INFO - Llama call successful.
+2026-01-28 13:41:50,896 - INFO - Calling Qwen model...
+2026-01-28 13:41:52,458 - INFO - Qwen call successful.
+2026-01-28 13:41:52,458 - INFO - Preparing for Gemma call...
+2026-01-28 13:41:52,458 - ERROR - Error in generate_response_options final step: 
+2026-01-28 13:42:03,250 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:42:03,251 - INFO - Calling Llama model...
+2026-01-28 13:42:04,727 - INFO - Llama call successful.
+2026-01-28 13:42:04,727 - INFO - Calling Qwen model...
+2026-01-28 13:42:06,271 - INFO - Qwen call successful.
+2026-01-28 13:42:06,271 - INFO - Preparing for Gemma call...
+2026-01-28 13:42:06,271 - ERROR - Error in generate_response_options final step: 
+2026-01-28 13:42:57,186 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:42:57,187 - INFO - Calling Llama model...
+2026-01-28 13:42:58,614 - INFO - Llama call successful.
+2026-01-28 13:42:58,615 - INFO - Calling Qwen model...
+2026-01-28 13:42:59,817 - INFO - Qwen call successful.
+2026-01-28 13:42:59,817 - INFO - Preparing for Gemma call...assistant
+2026-01-28 13:42:59,817 - ERROR - Error in generate_response_options final step: 
+2026-01-28 13:44:26,132 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:44:26,133 - INFO - Calling Llama model...
+2026-01-28 13:44:28,004 - INFO - Llama call successful.
+2026-01-28 13:44:28,004 - INFO - Calling Qwen model...
+2026-01-28 13:44:29,382 - INFO - Qwen call successful.
+2026-01-28 13:44:29,382 - INFO - Preparing for Gemma call...assistant
+2026-01-28 13:44:29,382 - ERROR - Error in generate_response_options final step: local variable 'safe_messages_gemma' referenced before assignment
+2026-01-28 13:46:12,751 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'user', 'content': 'hola que tal'}]
+2026-01-28 13:46:12,754 - INFO - Calling Llama model...
+2026-01-28 13:46:15,251 - INFO - Llama call successful.
+2026-01-28 13:46:15,252 - INFO - Calling Qwen model...
+2026-01-28 13:46:16,983 - INFO - Qwen call successful.
+2026-01-28 13:46:16,983 - INFO - Preparing for Gemma call...user
+2026-01-28 13:46:16,983 - ERROR - Error in generate_response_options final step: local variable 'safe_messages_gemma' referenced before assignment
+2026-01-28 13:46:24,447 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'user', 'content': 'hola que tal'}]
+2026-01-28 13:46:24,447 - INFO - Calling Llama model...
+2026-01-28 13:46:26,400 - INFO - Llama call successful.
+2026-01-28 13:46:26,400 - INFO - Calling Qwen model...
+2026-01-28 13:46:27,006 - INFO - Qwen call successful.
+2026-01-28 13:46:27,006 - INFO - Preparing for Gemma call...user
+2026-01-28 13:46:27,006 - ERROR - Error in generate_response_options final step: local variable 'safe_messages_gemma' referenced before assignment
+2026-01-28 13:46:58,442 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'user', 'content': 'hola que tal'}]
+2026-01-28 13:46:58,443 - INFO - Calling Llama model...
+2026-01-28 13:47:00,504 - INFO - Llama call successful.
+2026-01-28 13:47:00,504 - INFO - Calling Qwen model...
+2026-01-28 13:47:02,168 - INFO - Qwen call successful.
+2026-01-28 13:47:02,168 - INFO - Preparing for Gemma call...user
+2026-01-28 13:47:02,168 - INFO - ---  messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'hola que tal'}]
+2026-01-28 13:47:02,169 - INFO - ---  messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'assistant', 'content': 'hola que tal'}]
+2026-01-28 13:47:02,169 - INFO - Calling Gemma model...
+2026-01-28 13:47:02,408 - ERROR - Error calling Gemma: Error code: 400 - {'detail': '{"error":{"message":"Conversation roles must alternate user/assistant/user/assistant/... Conversation roles must alternate user/assistant/user/assistant/...","type":"BadRequestError","param":null,"code":400}}'}
+2026-01-28 13:47:02,408 - INFO - --- LLM calls completed ---
+2026-01-28 13:47:02,408 - WARNING - Not enough LLM options (2), adding fallbacks.
+2026-01-28 13:47:02,408 - INFO - Returning 3 response options.
+2026-01-28 13:49:52,126 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'user', 'content': 'hola que tal'}]
+2026-01-28 13:49:52,126 - INFO - Calling Llama model...
+2026-01-28 13:49:54,169 - INFO - Llama call successful.
+2026-01-28 13:49:54,169 - INFO - Calling Qwen model...
+2026-01-28 13:49:55,959 - INFO - Qwen call successful.
+2026-01-28 13:49:55,959 - INFO - Preparing for Gemma call...system
+2026-01-28 13:49:55,959 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial'}, {'role': 'user', 'content': 'hola que tal'}]
+2026-01-28 13:49:55,959 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial hola que tal'}]
+2026-01-28 13:49:55,959 - INFO - Calling Gemma model...
+2026-01-28 13:49:57,092 - INFO - Gemma call successful.
+2026-01-28 13:49:57,092 - INFO - --- LLM calls completed ---
+2026-01-28 13:49:57,092 - INFO - Returning 3 response options.
+2026-01-28 13:53:33,663 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'user', 'content': 'hola que tal'}]
+2026-01-28 13:53:33,663 - INFO - Calling Llama model...
+2026-01-28 13:53:36,383 - INFO - Llama call successful.
+2026-01-28 13:53:36,383 - INFO - Calling Qwen model...
+2026-01-28 13:53:37,009 - INFO - Qwen call successful.
+2026-01-28 13:53:37,009 - INFO - Preparing for Gemma call...system
+2026-01-28 13:53:37,009 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion:  hola que tal'}]
+2026-01-28 13:53:37,009 - INFO - Calling Gemma model...
+2026-01-28 13:53:37,431 - INFO - Gemma call successful.
+2026-01-28 13:53:37,431 - INFO - --- LLM calls completed ---
+2026-01-28 13:53:37,431 - INFO - Returning 3 response options.
+2026-01-28 13:53:46,124 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:53:48,175 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:53:48,418 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:53:48,583 - WARNING - No valid chat history found, returning hardcoded fallbacks.
+2026-01-28 13:53:52,908 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:53:52,908 - INFO - Calling Llama model...
+2026-01-28 13:53:54,638 - INFO - Llama call successful.
+2026-01-28 13:53:54,638 - INFO - Calling Qwen model...
+2026-01-28 13:53:56,018 - INFO - Qwen call successful.
+2026-01-28 13:53:56,019 - INFO - Preparing for Gemma call...system
+2026-01-28 13:53:56,019 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola'}]
+2026-01-28 13:53:56,019 - INFO - Calling Gemma model...
+2026-01-28 13:53:56,303 - INFO - Gemma call successful.
+2026-01-28 13:53:56,303 - INFO - --- LLM calls completed ---
+2026-01-28 13:53:56,303 - INFO - Returning 3 response options.
+2026-01-28 13:54:11,206 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}]
+2026-01-28 13:54:11,206 - INFO - Calling Llama model...
+2026-01-28 13:54:14,313 - INFO - Llama call successful.
+2026-01-28 13:54:14,313 - INFO - Calling Qwen model...
+2026-01-28 13:54:17,097 - INFO - Qwen call successful.
+2026-01-28 13:54:17,097 - INFO - Preparing for Gemma call...system
+2026-01-28 13:54:17,097 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}]
+2026-01-28 13:54:17,097 - INFO - Calling Gemma model...
+2026-01-28 13:54:18,351 - INFO - Gemma call successful.
+2026-01-28 13:54:18,351 - INFO - --- LLM calls completed ---
+2026-01-28 13:54:18,351 - INFO - Returning 3 response options.
+2026-01-28 13:54:47,601 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo'}]
+2026-01-28 13:54:47,601 - INFO - Calling Llama model...
+2026-01-28 13:54:51,019 - INFO - Llama call successful.
+2026-01-28 13:54:51,019 - INFO - Calling Qwen model...
+2026-01-28 13:54:53,406 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}]
+2026-01-28 13:54:53,406 - INFO - Calling Llama model...
+2026-01-28 13:54:53,628 - INFO - Qwen call successful.
+2026-01-28 13:54:53,628 - INFO - Preparing for Gemma call...system
+2026-01-28 13:54:53,628 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo'}]
+2026-01-28 13:54:53,628 - INFO - Calling Gemma model...
+2026-01-28 13:54:54,393 - INFO - Gemma call successful.
+2026-01-28 13:54:54,393 - INFO - --- LLM calls completed ---
+2026-01-28 13:54:54,393 - INFO - Returning 3 response options.
+2026-01-28 13:54:57,141 - INFO - Llama call successful.
+2026-01-28 13:54:57,141 - INFO - Calling Qwen model...
+2026-01-28 13:55:00,681 - INFO - Qwen call successful.
+2026-01-28 13:55:00,682 - INFO - Preparing for Gemma call...system
+2026-01-28 13:55:00,682 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}]
+2026-01-28 13:55:00,682 - INFO - Calling Gemma model...
+2026-01-28 13:55:01,306 - INFO - Gemma call successful.
+2026-01-28 13:55:01,306 - INFO - --- LLM calls completed ---
+2026-01-28 13:55:01,307 - INFO - Returning 3 response options.
+2026-01-28 13:55:19,801 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}]
+2026-01-28 13:55:19,801 - INFO - Calling Llama model...
+2026-01-28 13:55:25,677 - INFO - Llama call successful.
+2026-01-28 13:55:25,677 - INFO - Calling Qwen model...
+2026-01-28 13:55:29,048 - INFO - Qwen call successful.
+2026-01-28 13:55:29,048 - INFO - Preparing for Gemma call...system
+2026-01-28 13:55:29,048 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}]
+2026-01-28 13:55:29,048 - INFO - Calling Gemma model...
+2026-01-28 13:55:29,691 - INFO - Gemma call successful.
+2026-01-28 13:55:29,691 - INFO - --- LLM calls completed ---
+2026-01-28 13:55:29,691 - INFO - Returning 3 response options.
+2026-01-28 13:55:40,488 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}]
+2026-01-28 13:55:40,488 - INFO - Calling Llama model...
+2026-01-28 13:55:44,118 - INFO - Llama call successful.
+2026-01-28 13:55:44,118 - INFO - Calling Qwen model...
+2026-01-28 13:55:46,658 - INFO - Qwen call successful.
+2026-01-28 13:55:46,658 - INFO - Preparing for Gemma call...system
+2026-01-28 13:55:46,658 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}]
+2026-01-28 13:55:46,658 - INFO - Calling Gemma model...
+2026-01-28 13:55:47,288 - INFO - Gemma call successful.
+2026-01-28 13:55:47,288 - INFO - --- LLM calls completed ---
+2026-01-28 13:55:47,289 - INFO - Returning 3 response options.
+2026-01-28 13:55:57,254 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}, {'role': 'assistant', 'content': 'El insomnio puede ser un gran problema, ¿sabes qué crees que podría estar contribuyendo a que no puedas dormir?'}]
+2026-01-28 13:55:57,254 - INFO - Calling Llama model...
+2026-01-28 13:56:00,592 - INFO - Llama call successful.
+2026-01-28 13:56:00,592 - INFO - Calling Qwen model...
+2026-01-28 13:56:01,966 - INFO - Qwen call successful.
+2026-01-28 13:56:01,966 - INFO - Preparing for Gemma call...system
+2026-01-28 13:56:01,966 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}, {'role': 'assistant', 'content': 'El insomnio puede ser un gran problema, ¿sabes qué crees que podría estar contribuyendo a que no puedas dormir?'}]
+2026-01-28 13:56:01,966 - INFO - Calling Gemma model...
+2026-01-28 13:56:02,368 - INFO - Gemma call successful.
+2026-01-28 13:56:02,368 - INFO - --- LLM calls completed ---
+2026-01-28 13:56:02,368 - INFO - Returning 3 response options.
+2026-01-28 13:58:37,334 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}, {'role': 'assistant', 'content': 'El insomnio puede ser un gran problema, ¿sabes qué crees que podría estar contribuyendo a que no puedas dormir?'}]
+2026-01-28 13:58:37,334 - INFO - Calling Llama model...
+2026-01-28 13:58:43,689 - INFO - Llama call successful.
+2026-01-28 13:58:43,689 - INFO - Calling Qwen model...
+2026-01-28 13:58:45,212 - INFO - Qwen call successful.
+2026-01-28 13:58:45,212 - INFO - Preparing for Gemma call...system
+2026-01-28 13:58:45,212 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}, {'role': 'assistant', 'content': 'El insomnio puede ser un gran problema, ¿sabes qué crees que podría estar contribuyendo a que no puedas dormir?'}]
+2026-01-28 13:58:45,212 - INFO - Calling Gemma model...
+2026-01-28 13:58:45,908 - INFO - Gemma call successful.
+2026-01-28 13:58:45,908 - INFO - --- LLM calls completed ---
+2026-01-28 13:58:45,908 - INFO - Returning 3 response options.
+2026-01-28 14:00:02,632 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}, {'role': 'assistant', 'content': 'El insomnio puede ser un gran problema, ¿sabes qué crees que podría estar contribuyendo a que no puedas dormir?'}]
+2026-01-28 14:00:02,632 - INFO - Calling Llama model...
+2026-01-28 14:00:06,165 - INFO - Llama call successful.
+2026-01-28 14:00:06,166 - INFO - Calling Qwen model...
+2026-01-28 14:00:08,080 - INFO - Qwen call successful.
+2026-01-28 14:00:08,081 - INFO - Preparing for Gemma call...system
+2026-01-28 14:00:08,081 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'Hola ¿Cómo te sentiste al llegar aquí hoy? ¿Hay algo en particular que te haya llevado a querer hablar conmigo?'}, {'role': 'user', 'content': 'Pues la verdad que no me encuentro bien desde hace un tiempo me cuesta dormir'}, {'role': 'assistant', 'content': 'El insomnio puede ser un gran problema, ¿sabes qué crees que podría estar contribuyendo a que no puedas dormir?'}]
+2026-01-28 14:00:08,081 - INFO - Calling Gemma model...
+2026-01-28 14:00:08,858 - INFO - Gemma call successful.
+2026-01-28 14:00:08,858 - INFO - --- LLM calls completed ---
+2026-01-28 14:00:08,862 - INFO - Returning 3 response options.
+2026-01-28 14:02:37,151 - INFO - --- Starting LLM call with 2 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola'}]
+2026-01-28 14:02:37,151 - INFO - Calling Llama model...
+2026-01-28 14:02:38,875 - INFO - Llama call successful.
+2026-01-28 14:02:38,875 - INFO - Calling Qwen model...
+2026-01-28 14:02:39,491 - INFO - Qwen call successful.
+2026-01-28 14:02:39,491 - INFO - Preparing for Gemma call...system
+2026-01-28 14:02:39,491 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola'}]
+2026-01-28 14:02:39,491 - INFO - Calling Gemma model...
+2026-01-28 14:02:39,929 - INFO - Gemma call successful.
+2026-01-28 14:02:39,929 - INFO - --- LLM calls completed ---
+2026-01-28 14:02:39,929 - INFO - Returning 3 response options.
+2026-01-28 14:02:56,579 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien'}]
+2026-01-28 14:02:56,579 - INFO - Calling Llama model...
+2026-01-28 14:02:58,738 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}]
+2026-01-28 14:02:58,738 - INFO - Calling Llama model...
+2026-01-28 14:02:58,813 - INFO - Llama call successful.
+2026-01-28 14:02:58,813 - INFO - Calling Qwen model...
+2026-01-28 14:03:01,413 - INFO - Llama call successful.
+2026-01-28 14:03:01,413 - INFO - Calling Qwen model...
+2026-01-28 14:03:01,417 - INFO - Qwen call successful.
+2026-01-28 14:03:01,417 - INFO - Preparing for Gemma call...system
+2026-01-28 14:03:01,417 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien'}]
+2026-01-28 14:03:01,421 - INFO - Calling Gemma model...
+2026-01-28 14:03:02,553 - INFO - Gemma call successful.
+2026-01-28 14:03:02,553 - INFO - --- LLM calls completed ---
+2026-01-28 14:03:02,554 - INFO - Returning 3 response options.
+2026-01-28 14:03:02,891 - INFO - Qwen call successful.
+2026-01-28 14:03:02,891 - INFO - Preparing for Gemma call...system
+2026-01-28 14:03:02,891 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}]
+2026-01-28 14:03:02,892 - INFO - Calling Gemma model...
+2026-01-28 14:03:04,158 - INFO - Gemma call successful.
+2026-01-28 14:03:04,159 - INFO - --- LLM calls completed ---
+2026-01-28 14:03:04,160 - INFO - Returning 3 response options.
+2026-01-28 14:03:32,255 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}]
+2026-01-28 14:03:32,255 - INFO - Calling Llama model...
+2026-01-28 14:03:35,947 - INFO - Llama call successful.
+2026-01-28 14:03:35,947 - INFO - Calling Qwen model...
+2026-01-28 14:03:38,143 - INFO - Qwen call successful.
+2026-01-28 14:03:38,143 - INFO - Preparing for Gemma call...system
+2026-01-28 14:03:38,143 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}]
+2026-01-28 14:03:38,143 - INFO - Calling Gemma model...
+2026-01-28 14:03:38,922 - INFO - Gemma call successful.
+2026-01-28 14:03:38,922 - INFO - --- LLM calls completed ---
+2026-01-28 14:03:38,922 - INFO - Returning 3 response options.
+2026-01-28 14:04:19,965 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:04:19,965 - INFO - Calling Llama model...
+2026-01-28 14:04:22,382 - INFO - Llama call successful.
+2026-01-28 14:04:22,382 - INFO - Calling Qwen model...
+2026-01-28 14:04:23,993 - INFO - Qwen call successful.
+2026-01-28 14:04:23,993 - INFO - Preparing for Gemma call...system
+2026-01-28 14:04:23,993 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Coloquial\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:04:23,993 - INFO - Calling Gemma model...
+2026-01-28 14:04:24,776 - INFO - Gemma call successful.
+2026-01-28 14:04:24,776 - INFO - --- LLM calls completed ---
+2026-01-28 14:04:24,776 - INFO - Returning 3 response options.
+2026-01-28 14:05:05,768 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Grosero\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:05:05,768 - INFO - Calling Llama model...
+2026-01-28 14:05:07,598 - INFO - Llama call successful.
+2026-01-28 14:05:07,598 - INFO - Calling Qwen model...
+2026-01-28 14:05:09,857 - INFO - Qwen call successful.
+2026-01-28 14:05:09,857 - INFO - Preparing for Gemma call...system
+2026-01-28 14:05:09,857 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: Tercera generación\nTu tono de comunicación debe ser: Grosero\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:05:09,857 - INFO - Calling Gemma model...
+2026-01-28 14:05:10,562 - INFO - Gemma call successful.
+2026-01-28 14:05:10,562 - INFO - --- LLM calls completed ---
+2026-01-28 14:05:10,562 - INFO - Returning 3 response options.
+2026-01-28 14:05:48,716 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:05:48,716 - INFO - Calling Llama model...
+2026-01-28 14:05:51,428 - INFO - Llama call successful.
+2026-01-28 14:05:51,428 - INFO - Calling Qwen model...
+2026-01-28 14:05:53,166 - INFO - Qwen call successful.
+2026-01-28 14:05:53,166 - INFO - Preparing for Gemma call...system
+2026-01-28 14:05:53,166 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:05:53,166 - INFO - Calling Gemma model...
+2026-01-28 14:05:53,985 - INFO - Gemma call successful.
+2026-01-28 14:05:53,985 - INFO - --- LLM calls completed ---
+2026-01-28 14:05:53,985 - INFO - Returning 3 response options.
+2026-01-28 14:07:45,201 - INFO - --- Starting LLM call with 4 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:07:45,202 - INFO - Calling Llama model...
+2026-01-28 14:07:49,062 - INFO - Llama call successful.
+2026-01-28 14:07:49,062 - INFO - Calling Qwen model...
+2026-01-28 14:07:50,158 - INFO - Qwen call successful.
+2026-01-28 14:07:50,158 - INFO - Preparing for Gemma call...system
+2026-01-28 14:07:50,158 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante.'}]
+2026-01-28 14:07:50,158 - INFO - Calling Gemma model...
+2026-01-28 14:07:51,084 - INFO - Gemma call successful.
+2026-01-28 14:07:51,084 - INFO - --- LLM calls completed ---
+2026-01-28 14:07:51,084 - INFO - Returning 3 response options.
+2026-01-28 14:08:23,593 - INFO - --- Starting LLM call with 5 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante. Me parece un poco inusual que no haya nada que te preocupe o que quieras hablar sobre en esta sesión. ¿Podrías decirme un poco más sobre eso? ¿Es que no te sientes cómodo hablando sobre tus sentimientos o problemas?'}, {'role': 'user', 'content': 'eres un poco borde....'}]
+2026-01-28 14:08:23,593 - INFO - Calling Llama model...
+2026-01-28 14:08:28,084 - INFO - Llama call successful.
+2026-01-28 14:08:28,084 - INFO - Calling Qwen model...
+2026-01-28 14:08:31,287 - INFO - Qwen call successful.
+2026-01-28 14:08:31,287 - INFO - Preparing for Gemma call...system
+2026-01-28 14:08:31,287 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola ¿Qué te trae por aquí hoy? ¿Hay algo en particular que te gustaría que abordáramos?'}, {'role': 'user', 'content': 'pues hoy me encuentro bien todo va bien'}, {'role': 'assistant', 'content': 'Qué interesante. Me parece un poco inusual que no haya nada que te preocupe o que quieras hablar sobre en esta sesión. ¿Podrías decirme un poco más sobre eso? ¿Es que no te sientes cómodo hablando sobre tus sentimientos o problemas?'}, {'role': 'user', 'content': 'eres un poco borde....'}]
+2026-01-28 14:08:31,288 - INFO - Calling Gemma model...
+2026-01-28 14:08:32,848 - INFO - Gemma call successful.
+2026-01-28 14:08:32,848 - INFO - --- LLM calls completed ---
+2026-01-28 14:08:32,848 - INFO - Returning 3 response options.
+2026-01-28 14:08:57,582 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola, estas?'}, {'role': 'user', 'content': 'sii'}]
+2026-01-28 14:08:57,582 - INFO - Calling Llama model...
+2026-01-28 14:09:00,154 - INFO - Llama call successful.
+2026-01-28 14:09:00,154 - INFO - Calling Qwen model...
+2026-01-28 14:09:01,236 - INFO - Qwen call successful.
+2026-01-28 14:09:01,236 - INFO - Preparing for Gemma call...system
+2026-01-28 14:09:01,236 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola, estas?'}, {'role': 'user', 'content': 'sii'}]
+2026-01-28 14:09:01,236 - INFO - Calling Gemma model...
+2026-01-28 14:09:01,898 - INFO - Gemma call successful.
+2026-01-28 14:09:01,898 - INFO - --- LLM calls completed ---
+2026-01-28 14:09:01,898 - INFO - Returning 3 response options.
+2026-01-28 14:09:03,318 - INFO - --- Starting LLM call with 3 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola, estas?'}, {'role': 'user', 'content': 'sii hablamos del ejercicio de gratitud?'}]
+2026-01-28 14:09:03,318 - INFO - Calling Llama model...
+2026-01-28 14:09:05,878 - INFO - Llama call successful.
+2026-01-28 14:09:05,878 - INFO - Calling Qwen model...
+2026-01-28 14:09:08,648 - INFO - Qwen call successful.
+2026-01-28 14:09:08,648 - INFO - Preparing for Gemma call...system
+2026-01-28 14:09:08,648 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola, estas?'}, {'role': 'user', 'content': 'sii hablamos del ejercicio de gratitud?'}]
+2026-01-28 14:09:08,648 - INFO - Calling Gemma model...
+2026-01-28 14:09:09,394 - INFO - Gemma call successful.
+2026-01-28 14:09:09,394 - INFO - --- LLM calls completed ---
+2026-01-28 14:09:09,394 - INFO - Returning 3 response options.
+2026-01-28 14:09:45,310 - INFO - --- Starting LLM call with 5 messages ---[{'role': 'system', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola, estas?'}, {'role': 'user', 'content': 'sii hablamos del ejercicio de gratitud?'}, {'role': 'assistant', 'content': 'Sí, claro que sí. Me parece excelente que quieras retomar ese ejercicio. ¿Cómo te ha ido desde la última vez que lo comentamos? ¿Has podido llevarlo a cabo?'}, {'role': 'user', 'content': 'pues si pero no mucho... porque he estado ocupada en el trabjao'}]
+2026-01-28 14:09:45,310 - INFO - Calling Llama model...
+2026-01-28 14:09:48,937 - INFO - Llama call successful.
+2026-01-28 14:09:48,939 - INFO - Calling Qwen model...
+2026-01-28 14:09:52,248 - INFO - Qwen call successful.
+2026-01-28 14:09:52,248 - INFO - Preparing for Gemma call...system
+2026-01-28 14:09:52,248 - INFO - ---  messages ---[{'role': 'user', 'content': 'Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar, valida las emociones del usuario.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n\nTu estilo terapéutico es: CBT\nTu tono de comunicación debe ser: amigable pero profesional\nEmpieza la conversacion: '}, {'role': 'assistant', 'content': 'hola, estas?'}, {'role': 'user', 'content': 'sii hablamos del ejercicio de gratitud?'}, {'role': 'assistant', 'content': 'Sí, claro que sí. Me parece excelente que quieras retomar ese ejercicio. ¿Cómo te ha ido desde la última vez que lo comentamos? ¿Has podido llevarlo a cabo?'}, {'role': 'user', 'content': 'pues si pero no mucho... porque he estado ocupada en el trabjao'}]
+2026-01-28 14:09:52,248 - INFO - Calling Gemma model...
+2026-01-28 14:09:53,434 - INFO - Gemma call successful.
+2026-01-28 14:09:53,434 - INFO - --- LLM calls completed ---
+2026-01-28 14:09:53,434 - INFO - Returning 3 response options.
