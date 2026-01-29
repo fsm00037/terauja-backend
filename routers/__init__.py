@@ -15,7 +15,8 @@ from . import (
     assessment_stats_router,
     audit_logs_router,
     dashboard_router,
-    chat_router
+    chat_router,
+    notifications_router
 )
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
     "assessment_stats_router",
     "audit_logs_router",
     "dashboard_router",
-    "chat_router"
+    "chat_router",
+    "notifications_router"
 ]
