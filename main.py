@@ -28,8 +28,10 @@ from routers import (
     dashboard_router,
     dashboard_router,
     chat_router,
-    superadmin_router
+    superadmin_router,
+    notifications_router
 )
+from services.firebase_service import initialize_firebase
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -69,6 +71,9 @@ async def lifespan(app: FastAPI):
             session.add(ema_q)
             session.commit()
     
+    # Initialize Firebase
+    initialize_firebase()
+    
     # Start Background Scheduler
     asyncio.create_task(run_scheduler())
     
@@ -104,6 +109,7 @@ app.include_router(audit_logs_router.router, prefix="/audit-logs", tags=["Audit 
 app.include_router(dashboard_router.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(chat_router.router, prefix="/chat", tags=["Chat AI"])
 app.include_router(superadmin_router.router, prefix="/superadmin", tags=["Superadmin"])
+app.include_router(notifications_router.router, prefix="/notifications", tags=["Notifications"])
 
 @app.get("/")
 def read_root():

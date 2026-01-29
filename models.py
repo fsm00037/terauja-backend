@@ -429,3 +429,12 @@ class PushSubscription(SQLModel, table=True):
     auth: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     deleted_at: Optional[datetime] = Field(default=None)
+
+
+class FCMToken(SQLModel, table=True):
+    """Firebase Cloud Messaging token for push notifications"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id", index=True)
+    token: str = Field(unique=True, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
