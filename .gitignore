@@ -11,6 +11,10 @@ venv
 
 audit.log
 
+llm_activity.log
+
 __pycache__
 
 utils/__pycache__
+
+routers/__pycache__
