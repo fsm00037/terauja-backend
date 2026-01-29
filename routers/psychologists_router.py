@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List
 import secrets
-
+from datetime import datetime, timezone
 from database import get_session
 from models import Psychologist, PsychologistRead, PsychologistUpdate, Patient
 from auth import hash_password, require_admin, get_current_user

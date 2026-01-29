@@ -42,6 +42,7 @@ def clean_messages(messages):
             cleaned.append(dict(msg)) # Copia para no modificar el original
     return cleaned
 
+
 def llm_models(messages):
     """
     Llama a los modelos LLM usando OpenAI y devuelve la respuesta.
@@ -90,9 +91,14 @@ def llm_models(messages):
         content_model2 = str(ex)
 
     # Gemma
-    logger.info("Preparing for Gemma call...")
-    assert safe_messages[1]["role"] == "user"
-    safe_messages_gemma = clean_messages(messages)
+    logger.info("Preparing for Gemma call..." + safe_messages[0]["role"])
+    if safe_messages[0]["role"] == "system":
+        safe_messages[0]["role"] = "user"
+    else:
+        safe_messages[0]["role"] = "assistant"
+
+    safe_messages_gemma = clean_messages(safe_messages)
+    logger.info(f"---  messages ---{safe_messages_gemma}")
     try:
         logger.info("Calling Gemma model...")
         response_model3 = client.chat.completions.create(
@@ -154,7 +160,7 @@ def clean_response(text):
 def generate_response_options(chat_history, therapist_style=None, therapist_tone=None, therapist_instructions=None):
     
     # Construir el mensaje del sistema
-    system_message = """Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación de manera natural y terapéutica.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares\n- Tu respuesta debe ser una continuación natural de la conversación"""
+    system_message = """Eres un psicólogo profesional en una sesión terapéutica. Estás conversando con un paciente y debes continuar la conversación siempre con rol de psicólogo. No digas nada fuera de lugar.\nIMPORTANTE:\n- Responde SOLO con lo que dirías al paciente como terapeuta, sin explicaciones adicionales\n- NO incluyas prefijos como "Psicólogo:", "Respuesta:" o similares"""
     # Añadir configuración del terapeuta al mensaje del sistema
     if therapist_style:
         system_message += f"\n\nTu estilo terapéutico es: {therapist_style}"
@@ -162,7 +168,7 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
         system_message += f"\nTu tono de comunicación debe ser: {therapist_tone}"
     if therapist_instructions:
         system_message += f"\nInstrucciones adicionales: {therapist_instructions}"
-    
+    system_message += f"\nEmpieza la conversacion: "
     # Convertir el historial al formato correcto
     messages = [{"role": "system", "content": system_message}]
     
@@ -173,7 +179,7 @@ def generate_response_options(chat_history, therapist_style=None, therapist_tone
             
             if original_role in ["user", "patient"]:
                 role = "user"
-            elif original_role in ["assistant", "psychologist"]:
+            elif original_role in ["assistant", "therapist"]:
                 role = "assistant"
             else:
                 role = original_role
