@@ -36,6 +36,7 @@ def register_fcm_token(
     """
     import logging
     logger = logging.getLogger("notifications")
+    print(f"[DEBUG] Register token request received for patient {current_patient.id}")
     # logger.info(f"[FCM] Registering token for patient {current_patient.id}: {request.token[:30]}...")
     
     # Check if token already exists

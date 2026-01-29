@@ -12,6 +12,7 @@ from models import (
 from auth import get_current_user, get_current_actor, get_current_patient, verify_patient_access
 from logging_utils import log_action
 from utils.assignment_utils import calculate_next_scheduled_time, check_and_update_assignment_expiry
+from services.firebase_service import send_push_to_patient
 
 class QuestionnaireCompletionWithDetails(SQLModel):
     id: int
@@ -91,6 +92,18 @@ def assign_questionnaire(
         "ASSIGN_QUESTIONNAIRE", 
         details={"patient_id": assignment.patient_id, "questionnaire_id": assignment.questionnaire_id}
     )
+
+    # Notify patient
+    try:
+
+        send_push_to_patient(
+            patient_id=assignment.patient_id,
+            title="Nuevo Cuestionario Asignado",
+            body=f"Se te ha asignado el cuestionario: {questionnaire.title}",
+            data={"type": "questionnaire", "id": str(assignment.id)}
+        )
+    except Exception as e:
+        print(f"Error sending notification: {e}")
     
     return assignment
 

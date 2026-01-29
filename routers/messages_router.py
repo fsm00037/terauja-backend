@@ -6,6 +6,7 @@ from database import get_session
 from models import Message, MessageCreate, MessageRead, Psychologist
 from auth import get_current_user, get_current_actor, verify_patient_access
 from logging_utils import log_action
+from services.firebase_service import send_push_to_patient
 
 router = APIRouter()
 
@@ -72,6 +73,24 @@ def create_message(
         }
     )
     
+
+    # Notify patient if message is from psychologist
+    if not message.is_from_patient:
+        try:
+            # Get psychologist name for better notification
+            psych_name = "Tu psicólogo"
+            if hasattr(current_user, "name"):
+                psych_name = current_user.name
+                
+            send_push_to_patient(
+                patient_id=message.patient_id,
+                title="Nuevo Mensaje",
+                body=f"Has recibido un mensaje de {psych_name}",
+                data={"type": "message", "id": str(db_message.id)}
+            )
+        except Exception as e:
+            print(f"Error sending notification: {e}")
+
     return db_message
 
 @router.get("/{patient_id}", response_model=List[MessageRead])
