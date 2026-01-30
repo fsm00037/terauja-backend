@@ -94,16 +94,16 @@ def assign_questionnaire(
     )
 
     # Notify patient
-    try:
-
-        send_push_to_patient(
-            patient_id=assignment.patient_id,
-            title="Nuevo Cuestionario Asignado",
-            body=f"Se te ha asignado el cuestionario: {questionnaire.title}",
-            data={"type": "questionnaire", "id": str(assignment.id)}
-        )
-    except Exception as e:
-        print(f"Error sending notification: {e}")
+    # Notificar al paciente (REMOVIDO: Se maneja via scheduler)
+    # try:
+    #     from services.firebase_service import send_questionnaire_assigned_notification
+    #     send_questionnaire_assigned_notification(
+    #         patient_id=assignment.patient_id,
+    #         assignment_id=assignment.id,
+    #         questionnaire_title=questionnaire.title
+    #     )
+    # except Exception as e:
+    #     print(f"Error sending notification: {e}")
     
     return assignment
 

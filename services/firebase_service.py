@@ -124,13 +124,10 @@ def send_push_to_patient(
     """
     from models import FCMToken
     
-    
-    # print(f"[FIREBASE] send_push_to_patient called for patient {patient_id}")
-    
+    logger.info(f"[FIREBASE] send_push_to_patient called for patient {patient_id}")
     
     if _firebase_app is None:
-        # print("[FIREBASE] ERROR: Firebase not initialized")
-        logger.error("Firebase not initialized")
+        logger.error("[FIREBASE] ERROR: Firebase not initialized")
         return 0
     
     with Session(engine) as session:
@@ -138,17 +135,17 @@ def send_push_to_patient(
         statement = select(FCMToken).where(FCMToken.patient_id == patient_id)
         tokens = session.exec(statement).all()
         
-        # print(f"[FIREBASE] Found {len(tokens)} tokens for patient {patient_id}")
-        
+        logger.info(f"[FIREBASE] Found {len(tokens)} tokens for patient {patient_id}")
         
         if not tokens:
-            logger.info(f"No FCM tokens found for patient {patient_id}")
+            logger.warning(f"[FIREBASE] No FCM tokens found for patient {patient_id}. Notification '{title}' will NOT be delivered via push.")
             return 0
         
         success_count = 0
         tokens_to_remove: List[FCMToken] = []
         
         for token_record in tokens:
+            logger.info(f"[FIREBASE] Attempting to send to token: {token_record.token[:20]}...")
             result = send_push_notification(
                 token=token_record.token,
                 title=title,
@@ -158,9 +155,11 @@ def send_push_to_patient(
             
             if result:
                 success_count += 1
+                logger.info(f"[FIREBASE] Successfully sent to token {token_record.id}")
             else:
                 # Mark invalid tokens for removal
                 tokens_to_remove.append(token_record)
+                logger.warning(f"[FIREBASE] Failed to send to token {token_record.id}, marking for removal")
         
         # Remove invalid tokens
         for invalid_token in tokens_to_remove:
@@ -168,7 +167,39 @@ def send_push_to_patient(
         
         if tokens_to_remove:
             session.commit()
-            logger.info(f"Removed {len(tokens_to_remove)} invalid FCM tokens")
+            logger.info(f"[FIREBASE] Removed {len(tokens_to_remove)} invalid FCM tokens")
         
-        logger.info(f"Sent {success_count}/{len(tokens)} notifications to patient {patient_id}")
+        logger.info(f"[FIREBASE] Summary: Sent {success_count}/{len(tokens)} notifications to patient {patient_id}")
         return success_count
+
+
+def send_new_message_notification(patient_id: int, message_id: int, sender_name: str) -> int:
+    """
+    Send a notification for a new message.
+    """
+    return send_push_to_patient(
+        patient_id=patient_id,
+        title="Nuevo Mensaje",
+        body=f"Has recibido un mensaje de {sender_name}",
+        data={
+            "type": "message", 
+            "id": str(message_id),
+            "click_action": "/chat"
+        }
+    )
+
+
+def send_questionnaire_assigned_notification(patient_id: int, assignment_id: int, questionnaire_title: str) -> int:
+    """
+    Send a notification for a new questionnaire assignment.
+    """
+    return send_push_to_patient(
+        patient_id=patient_id,
+        title="Nuevo Cuestionario",
+        body=f"Tienes un nuevo cuestionario pendiente: {questionnaire_title}",
+        data={
+            "type": "questionnaire", 
+            "id": str(assignment_id),
+            "click_action": "/formularios"
+        }
+    )

@@ -82,11 +82,11 @@ def create_message(
             if hasattr(current_user, "name"):
                 psych_name = current_user.name
                 
-            send_push_to_patient(
+            from services.firebase_service import send_new_message_notification
+            send_new_message_notification(
                 patient_id=message.patient_id,
-                title="Nuevo Mensaje",
-                body=f"Has recibido un mensaje de {psych_name}",
-                data={"type": "message", "id": str(db_message.id)}
+                message_id=db_message.id,
+                sender_name=psych_name
             )
         except Exception as e:
             print(f"Error sending notification: {e}")
