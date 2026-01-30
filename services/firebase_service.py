@@ -86,21 +86,21 @@ def send_push_notification(
                     icon="/icon.svg",
                 ),
                 fcm_options=messaging.WebpushFCMOptions(
-                    link="/"
+                    link="https://s5-ceatic.ujaen.es:8009/"
                 )
             )
         )
         
         response = messaging.send(message)
-        # logger.info(f"Push notification sent successfully: {response}")
+        logger.info(f"[FIREBASE] Push notification sent successfully. Message ID: {response}")
         return True
         
     except messaging.UnregisteredError:
-        # logger.warning(f"Token is no longer valid: {token[:20]}...")
+        logger.warning(f"[FIREBASE] Token is invalid/unregistered: {token[:20]}...")
         # Token should be removed from database
         return False
     except Exception as e:
-        logger.error(f"Failed to send push notification: {type(e).__name__}: {e}")
+        logger.error(f"[FIREBASE] Failed to send push notification: {type(e).__name__}: {e}")
         return False
 
 

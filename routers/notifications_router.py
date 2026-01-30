@@ -36,7 +36,7 @@ def register_fcm_token(
     """
     import logging
     logger = logging.getLogger("notifications")
-    print(f"[DEBUG] Register token request received for patient {current_patient.id}")
+    logger.info(f"[FCM] Register token request received for patient {current_patient.id}")
     # logger.info(f"[FCM] Registering token for patient {current_patient.id}: {request.token[:30]}...")
     
     # Check if token already exists
@@ -50,7 +50,7 @@ def register_fcm_token(
         existing.updated_at = datetime.utcnow()
         session.add(existing)
         session.commit()
-        # logger.info(f"[FCM] Token updated, id={existing.id}")
+        logger.info(f"[FCM] Token updated, id={existing.id}")
         return {"message": "Token updated", "token_id": existing.id}
     
     # Create new token
@@ -62,7 +62,7 @@ def register_fcm_token(
     session.commit()
     session.refresh(fcm_token)
     
-    # logger.info(f"[FCM] Token registered, id={fcm_token.id}")
+    logger.info(f"[FCM] Token registered, id={fcm_token.id}")
     return {"message": "Token registered", "token_id": fcm_token.id}
 
 

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sqlmodel import Session, select, or_
 from database import engine
 from models import QuestionnaireCompletion, Assignment, Questionnaire
-from services.firebase_service import send_push_to_patient
+from services.firebase_service import send_questionnaire_assigned_notification
 import logging
 
 # Configure logging
@@ -15,7 +15,7 @@ async def run_scheduler():
     while True:
         try:
             with Session(engine) as session:
-                now = datetime.now()
+                now = datetime.utcnow()
                 
                 # 1. Process 'pending' items that are due (scheduled_at <= now)
                 statement_pending = (
@@ -40,7 +40,8 @@ async def run_scheduler():
                         # Queue notification for this patient
                         notifications_to_send.append({
                             "patient_id": completion.patient_id,
-                            "questionnaire_id": completion.questionnaire_id
+                            "questionnaire_id": completion.questionnaire_id,
+                            "assignment_id": completion.assignment_id
                         })
                     session.add(completion)
                 
@@ -62,7 +63,7 @@ async def run_scheduler():
                 
                 if count_sent > 0 or count_missed > 0:
                     session.commit()
-                    logger.info(f"Scheduler update: Sent {count_sent}, Missed {count_missed}")
+                    logger.info(f"Scheduler update: Sent {count_sent}, Missed {count_missed}, Paused {count_paused_skipped}")
                     
                     # Send push notifications for newly sent questionnaires
                     for notif in notifications_to_send:
@@ -71,11 +72,12 @@ async def run_scheduler():
                             questionnaire = session.get(Questionnaire, notif["questionnaire_id"])
                             title = questionnaire.title if questionnaire else "Cuestionario"
                             
-                            send_push_to_patient(
+                            logger.info(f"Sending notification for patient {notif['patient_id']}, assignment {notif['assignment_id']}")
+                            
+                            send_questionnaire_assigned_notification(
                                 patient_id=notif["patient_id"],
-                                title="Nuevo Cuestionario Disponible",
-                                body=f"Tienes un nuevo cuestionario pendiente: {title}",
-                                data={"type": "questionnaire", "questionnaire_id": str(notif["questionnaire_id"])}
+                                assignment_id=notif["assignment_id"],
+                                questionnaire_title=title
                             )
                         except Exception as push_error:
                             logger.error(f"Failed to send push notification: {push_error}")

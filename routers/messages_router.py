@@ -6,8 +6,12 @@ from database import get_session
 from models import Message, MessageCreate, MessageRead, Psychologist
 from auth import get_current_user, get_current_actor, verify_patient_access
 from logging_utils import log_action
-from services.firebase_service import send_push_to_patient
+from services.firebase_service import send_push_to_patient, send_new_message_notification
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("messages_router")
 router = APIRouter()
 
 @router.post("", response_model=MessageRead)
@@ -83,13 +87,14 @@ def create_message(
                 psych_name = current_user.name
                 
             from services.firebase_service import send_new_message_notification
-            send_new_message_notification(
+            result = send_new_message_notification(
                 patient_id=message.patient_id,
                 message_id=db_message.id,
                 sender_name=psych_name
             )
+            logger.info(f"Sent notification to patient {message.patient_id} for message {db_message.id}. Result count: {result}")
         except Exception as e:
-            print(f"Error sending notification: {e}")
+            logger.error(f"Error sending notification: {e}")
 
     return db_message
 
