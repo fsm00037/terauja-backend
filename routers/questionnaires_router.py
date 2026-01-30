@@ -51,6 +51,7 @@ def update_questionnaire(
         raise HTTPException(status_code=404, detail="Questionnaire not found")
     
     questionnaire.title = updated_q.title
+    questionnaire.icon = updated_q.icon
     questionnaire.description = updated_q.description
     questionnaire.questions = updated_q.questions
     
