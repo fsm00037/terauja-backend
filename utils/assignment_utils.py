@@ -169,6 +169,10 @@ def generate_schedule_dates(start_date_str: str, end_date_str: str, frequency_ty
                 dates.append(get_random_time_for_date(next_dt))
                 i += 1
                 
+        # Filter out past dates/times
+        now = datetime.utcnow()
+        dates = [d for d in dates if d > now]
+
         # Sort dates just in case
         dates.sort()
         print(f"DEBUG: generate_schedule_dates inputs: start={start_date_str}, end={end_date_str}, type={frequency_type}, count={count}, w_start={window_start}, w_end={window_end}")
