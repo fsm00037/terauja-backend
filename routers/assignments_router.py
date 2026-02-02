@@ -309,6 +309,49 @@ def get_questionnaire_completions(
     
     if changed:
         session.commit()
+        
+    # Lazy Cleanup: Enforce "One Active Assignment" Rule in Dashboard View
+    # 1. Fetch all potential candidates (non-deleted, scheduled in past/present)
+    # We want to emulate what happens when the patient opens the app:
+    # If there are multiple overlapping assignments, only the latest one should survive.
+    
+    candidates_statement = (
+        select(QuestionnaireCompletion)
+        .where(QuestionnaireCompletion.patient_id == patient_id)
+        .where(QuestionnaireCompletion.deleted_at == None)
+        .where(QuestionnaireCompletion.scheduled_at <= now)
+        .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
+    )
+    candidates = session.exec(candidates_statement).all()
+    
+    # Group by questionnaire
+    by_questionnaire = {}
+    for c in candidates:
+        if c.questionnaire_id not in by_questionnaire:
+            by_questionnaire[c.questionnaire_id] = []
+        by_questionnaire[c.questionnaire_id].append(c)
+        
+    cleanup_triggered = False
+    for q_id, items in by_questionnaire.items():
+        if not items: continue
+        # Find the "Latest Active" = The one with the max scheduled_at
+        latest_active = max(items, key=lambda x: x.scheduled_at)
+        
+        # Cleanup anything older than this latest_active
+        # This will delete the older ones
+        if len(items) > 1:
+            cleanup_previous_completions(
+                session, 
+                patient_id, 
+                q_id, 
+                exclude_completion_id=latest_active.id, 
+                older_than=latest_active.scheduled_at,
+                current_assignment_id=latest_active.assignment_id
+            )
+            cleanup_triggered = True
+            
+    if cleanup_triggered:
+        session.commit()
 
     statement = (
         select(QuestionnaireCompletion)
