@@ -11,7 +11,7 @@ from models import (
 )
 from auth import get_current_user, get_current_actor, get_current_patient, verify_patient_access
 from logging_utils import log_action
-from utils.assignment_utils import calculate_next_scheduled_time, check_and_update_assignment_expiry
+from utils.assignment_utils import calculate_next_scheduled_time, check_and_update_assignment_expiry, cleanup_previous_completions
 from services.firebase_service import send_push_to_patient
 
 class QuestionnaireCompletionWithDetails(SQLModel):
@@ -49,36 +49,8 @@ def assign_questionnaire(
         raise HTTPException(status_code=404, detail="Questionnaire not found")
 
     # ----------------------------------------------------------------------
-    # CRITICAL: Soft-delete ANY previous incomplete assignments/completions
-    # for this same questionnaire and patient, to avoid duplicates.
-    # ----------------------------------------------------------------------
-    existing_completions = session.exec(
-        select(QuestionnaireCompletion)
-        .where(QuestionnaireCompletion.patient_id == assignment.patient_id)
-        .where(QuestionnaireCompletion.questionnaire_id == assignment.questionnaire_id)
-        .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
-        .where(QuestionnaireCompletion.deleted_at == None)
-    ).all()
-    
-    if existing_completions:
-        now_utc = datetime.now(timezone.utc)
-        affected_assignment_ids = set()
-        
-        for ec in existing_completions:
-            ec.deleted_at = now_utc
-            session.add(ec)
-            affected_assignment_ids.add(ec.assignment_id)
-            
-        # Also soft-delete the parent assignments to avoid clutter
-        if affected_assignment_ids:
-            assignments_to_delete = session.exec(
-                select(Assignment).where(Assignment.id.in_(affected_assignment_ids))
-            ).all()
-            for old_assignment in assignments_to_delete:
-                old_assignment.deleted_at = now_utc
-                session.add(old_assignment)
-            
-        session.commit()
+    # NOTE: Cleanup of previous assignments is now done when the 
+    # new assignment is activated/sent, not at creation time.
     # ----------------------------------------------------------------------
 
     # Initial scheduling
@@ -358,7 +330,7 @@ def get_my_pending_assignments(
     Marks them as 'sent' if they are not already sent.
     Returns all 'sent' (and previously 'sent') items that are not completed or missed.
     """
-    now = datetime.now()
+    now = datetime.utcnow()
     
     # 1. Update pending -> sent if due
     statement = (
@@ -371,6 +343,7 @@ def get_my_pending_assignments(
     due_completions = session.exec(statement).all()
     
     for c in due_completions:
+        cleanup_previous_completions(session, c.patient_id, c.questionnaire_id, exclude_completion_id=c.id)
         c.status = "sent"
         session.add(c)
     

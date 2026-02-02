@@ -4,6 +4,7 @@ from sqlmodel import Session, select, or_
 from database import engine
 from models import QuestionnaireCompletion, Assignment, Questionnaire
 from services.firebase_service import send_questionnaire_assigned_notification
+from utils.assignment_utils import cleanup_previous_completions
 import logging
 
 # Configure logging
@@ -35,6 +36,7 @@ async def run_scheduler():
                         completion.status = "paused" # Mark as paused if parent is paused
                         count_paused_skipped += 1
                     else:
+                        cleanup_previous_completions(session, completion.patient_id, completion.questionnaire_id, exclude_completion_id=completion.id)
                         completion.status = "sent"
                         count_sent += 1
                         # Queue notification for this patient

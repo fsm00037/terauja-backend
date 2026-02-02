@@ -1,7 +1,7 @@
 import random
-from datetime import datetime, timedelta, time
-from sqlmodel import Session
-from models import Assignment
+from datetime import datetime, timedelta, time, timezone
+from sqlmodel import Session, select, or_
+from models import Assignment, QuestionnaireCompletion
 
 def calculate_next_scheduled_time(assignment: Assignment, last_questionnaire_sent_at: datetime = None):
     """
@@ -69,7 +69,54 @@ def check_and_update_assignment_expiry(assignment: Assignment, session: Session)
             pass
     return False
 
+def cleanup_previous_completions(session: Session, patient_id: int, questionnaire_id: int, exclude_completion_id: int = None):
+    """
+    Soft-deletes previous incomplete completions (pending, sent, missed) for a specific patient and questionnaire.
+    This ensures that when a new questionnaire is essentially 'activated' (sent), old ones are cleared.
+    """
+    try:
+        # Find existing completions that are not completed (pending, sent, missed)
+        statement = (
+            select(QuestionnaireCompletion)
+            .where(QuestionnaireCompletion.patient_id == patient_id)
+            .where(QuestionnaireCompletion.questionnaire_id == questionnaire_id)
+            .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
+            .where(QuestionnaireCompletion.deleted_at == None)
+        )
+        
+        existing_completions = session.exec(statement).all()
+        
+        now_utc = datetime.now(timezone.utc)
+        count_deleted = 0
+        affected_assignment_ids = set()
+        
+        for ec in existing_completions:
+            # Skip the one we are currently processing (if any)
+            if exclude_completion_id and ec.id == exclude_completion_id:
+                continue
+                
+            ec.deleted_at = now_utc
+            session.add(ec)
+            affected_assignment_ids.add(ec.assignment_id)
+            count_deleted += 1
+            
+        # Also clean up the parent assignments
+        if affected_assignment_ids:
+            assignments_to_delete = session.exec(
+                select(Assignment).where(Assignment.id.in_(affected_assignment_ids))
+            ).all()
+            for old_assignment in assignments_to_delete:
+                old_assignment.deleted_at = now_utc
+                session.add(old_assignment)
+            print(f"Cleanup: Also deleted {len(assignments_to_delete)} parent assignments.")
+            
+        print(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id}")
+            
+    except Exception as e:
+        print(f"Error in cleanup_previous_completions: {e}")
+
 def generate_schedule_dates(start_date_str: str, end_date_str: str, frequency_type: str, count: int, window_start: str = "09:00", window_end: str = "21:00") -> list[datetime]:
+
     try:
         start_dt = datetime.fromisoformat(start_date_str)
         end_dt = datetime.fromisoformat(end_date_str)
