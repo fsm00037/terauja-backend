@@ -349,6 +349,17 @@ def get_my_pending_assignments(
             c.status = "paused"
         else:
             c.status = "sent"
+            # Cleanup previous assignments of THIS TYPE (questionnaire_id) for THIS PATIENT
+            # This ensures we only have the latest one "active"/sent
+            cleanup_previous_completions(
+                session, 
+                c.patient_id, 
+                c.questionnaire_id, 
+                exclude_completion_id=c.id,
+                older_than=c.scheduled_at,
+                current_assignment_id=c.assignment_id
+            )
+            
         session.add(c)
     
     if due_completions:
@@ -509,6 +520,27 @@ def update_completion(
     )
     
     return completion
+
+@router.delete("/completions/{completion_id}")
+def delete_questionnaire_completion(
+    completion_id: int, 
+    session: Session = Depends(get_session), 
+    current_user: Psychologist = Depends(get_current_user)
+):
+    from datetime import datetime, timezone
+    completion = session.get(QuestionnaireCompletion, completion_id)
+    if not completion or completion.deleted_at:
+        raise HTTPException(status_code=404, detail="Completion not found")
+        
+    verify_patient_access(completion.patient_id, current_user, session)
+    
+    completion.deleted_at = datetime.now(timezone.utc)
+    session.add(completion)
+    session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "DELETE_COMPLETION", details={"completion_id": completion_id})
+    
+    return {"ok": True}
 
 @router.patch("/completions/{completion_id}/read")
 def mark_completion_as_read(
