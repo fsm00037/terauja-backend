@@ -109,12 +109,25 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
         if current_assignment_id:
             for old_aid in affected_assignment_ids:
                 if old_aid != current_assignment_id:
-                    # Soft delete the old assignment
-                    old_assignment = session.get(Assignment, old_aid)
-                    if old_assignment and not old_assignment.deleted_at:
-                        old_assignment.deleted_at = now_utc
-                        session.add(old_assignment)
-                        print(f"Cleanup: Also deleted old assignment {old_aid}")
+                    # Check if this assignment has any FUTURE pending items
+                    # If it does, we should NOT delete the assignment, just the old completions we found.
+                    has_future = session.exec(
+                        select(QuestionnaireCompletion)
+                        .where(QuestionnaireCompletion.assignment_id == old_aid)
+                        .where(QuestionnaireCompletion.status == "pending")
+                        .where(QuestionnaireCompletion.scheduled_at > now_utc)
+                        .where(QuestionnaireCompletion.deleted_at == None)
+                    ).first()
+                    
+                    if not has_future:
+                        # Soft delete the old assignment only if it has nothing left
+                        old_assignment = session.get(Assignment, old_aid)
+                        if old_assignment and not old_assignment.deleted_at:
+                            old_assignment.deleted_at = now_utc
+                            session.add(old_assignment)
+                            print(f"Cleanup: Also deleted obsolete assignment {old_aid}")
+                    else:
+                        print(f"Cleanup: Preserved assignment {old_aid} because it has future pending items")
 
         print(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id} (older_than={older_than})")
 
