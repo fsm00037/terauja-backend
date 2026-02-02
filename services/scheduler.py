@@ -29,23 +29,46 @@ async def run_scheduler():
                 
                 count_sent = 0
                 count_paused_skipped = 0
-                notifications_to_send = []
 
                 for completion, assignment in pending_items:
-                    if assignment.status == "paused":
-                        completion.status = "paused" # Mark as paused if parent is paused
-                        count_paused_skipped += 1
-                    else:
+                    try:
+                        # 1. Update status logic
+                        if assignment.status == "paused":
+                            completion.status = "paused"
+                            session.add(completion)
+                            session.commit()
+                            count_paused_skipped += 1
+                            continue
+
+                        # 2. Cleanup previous
                         cleanup_previous_completions(session, completion.patient_id, completion.questionnaire_id, exclude_completion_id=completion.id)
+                        
+                        # 3. Send Notification FIRST (At-least-once delivery)
+                        # Failure here shouldn't stop the DB update (unless we want strict consistency, but we prefer the user sees it in app)
+                        try:
+                            # Get questionnaire title
+                            questionnaire = session.get(Questionnaire, completion.questionnaire_id)
+                            title = questionnaire.title if questionnaire else "Cuestionario"
+                            
+                            logger.info(f"Sending notification for patient {completion.patient_id}, assignment {completion.assignment_id}")
+                            
+                            send_questionnaire_assigned_notification(
+                                patient_id=completion.patient_id,
+                                assignment_id=completion.assignment_id,
+                                questionnaire_title=title
+                            )
+                        except Exception as push_error:
+                            logger.error(f"Failed to send push notification: {push_error}")
+
+                        # 4. Update status and Commit
                         completion.status = "sent"
+                        session.add(completion)
+                        session.commit()
                         count_sent += 1
-                        # Queue notification for this patient
-                        notifications_to_send.append({
-                            "patient_id": completion.patient_id,
-                            "questionnaire_id": completion.questionnaire_id,
-                            "assignment_id": completion.assignment_id
-                        })
-                    session.add(completion)
+                        
+                    except Exception as item_error:
+                        logger.error(f"Error processing completion {completion.id}: {item_error}")
+                        session.rollback() # Rollback this specific item's transaction if DB failed
                 
                 # 2. Mark 'sent' as 'missed' if scheduled_at + 24h <= now
                 # Note: Adjust logic if you want to allow late completions, but user requested missed.
@@ -63,26 +86,11 @@ async def run_scheduler():
                     session.add(c)
                     count_missed += 1
                 
-                if count_sent > 0 or count_missed > 0:
+                if count_missed > 0:
                     session.commit()
+                
+                if count_sent > 0 or count_missed > 0 or count_paused_skipped > 0:
                     logger.info(f"Scheduler update: Sent {count_sent}, Missed {count_missed}, Paused {count_paused_skipped}")
-                    
-                    # Send push notifications for newly sent questionnaires
-                    for notif in notifications_to_send:
-                        try:
-                            # Get questionnaire title
-                            questionnaire = session.get(Questionnaire, notif["questionnaire_id"])
-                            title = questionnaire.title if questionnaire else "Cuestionario"
-                            
-                            logger.info(f"Sending notification for patient {notif['patient_id']}, assignment {notif['assignment_id']}")
-                            
-                            send_questionnaire_assigned_notification(
-                                patient_id=notif["patient_id"],
-                                assignment_id=notif["assignment_id"],
-                                questionnaire_title=title
-                            )
-                        except Exception as push_error:
-                            logger.error(f"Failed to send push notification: {push_error}")
                     
         except Exception as e:
             logger.error(f"Error in scheduler: {e}")
