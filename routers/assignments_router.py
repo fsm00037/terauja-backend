@@ -363,15 +363,20 @@ def get_my_pending_assignments(
     # 1. Update pending -> sent if due
     statement = (
         select(QuestionnaireCompletion)
+        .join(Assignment)
         .where(QuestionnaireCompletion.patient_id == current_user.id)
         .where(QuestionnaireCompletion.status == "pending")
         .where(QuestionnaireCompletion.scheduled_at <= now)
         .where(QuestionnaireCompletion.deleted_at == None)
+        .options(selectinload(QuestionnaireCompletion.assignment))
     )
     due_completions = session.exec(statement).all()
     
     for c in due_completions:
-        c.status = "sent"
+        if c.assignment.status == "paused":
+            c.status = "paused"
+        else:
+            c.status = "sent"
         session.add(c)
     
     if due_completions:
