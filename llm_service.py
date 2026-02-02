@@ -2,6 +2,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import logging
 import os
+import tiktoken
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(BASE_DIR, "llm_activity.log")
@@ -24,6 +25,83 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY_PSICOUJA"),
     base_url=os.getenv("BASE_URL_MODELS_PSICOUJA")
 )
+
+# Límite de tokens para el contexto
+MAX_TOKENS = 8192
+# Reservar tokens para la respuesta del modelo
+RESERVED_TOKENS = 256
+
+def count_tokens(messages, model="gpt-3.5-turbo"):
+    """
+    Cuenta los tokens en una lista de mensajes.
+    Usa tiktoken para estimar los tokens de forma precisa.
+    """
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Fallback a cl100k_base si el modelo no está disponible
+        encoding = tiktoken.get_encoding("cl100k_base")
+    
+    num_tokens = 0
+    for message in messages:
+        # Cada mensaje tiene overhead de formato
+        num_tokens += 4  # <im_start>{role/name}\n{content}<im_end>\n
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(str(value)))
+    
+    num_tokens += 2  # Overhead de la conversación completa
+    return num_tokens
+
+def truncate_messages(messages, max_tokens=MAX_TOKENS - RESERVED_TOKENS):
+    """
+    Trunca el historial de mensajes eliminando los más antiguos hasta que
+    el total de tokens esté por debajo del límite.
+    
+    Siempre mantiene:
+    - El mensaje del sistema (primero)
+    - Al menos el último intercambio (user + assistant si existe)
+    """
+    if not messages:
+        return messages
+    
+    # Verificar si estamos dentro del límite
+    current_tokens = count_tokens(messages)
+    
+    if current_tokens <= max_tokens:
+        logger.info(f"Messages within token limit: {current_tokens}/{max_tokens} tokens")
+        return messages
+    
+    logger.warning(f"Messages exceed token limit: {current_tokens}/{max_tokens} tokens. Truncating...")
+    
+    # Separar el mensaje del sistema del resto
+    system_message = messages[0] if messages[0].get("role") == "system" else None
+    conversation_messages = messages[1:] if system_message else messages[:]
+    
+    # Mantener al menos el último mensaje del usuario
+    if not conversation_messages:
+        return messages
+    
+    # Empezar con el sistema y los últimos mensajes
+    truncated = [system_message] if system_message else []
+    
+    # Añadir mensajes desde el final hacia el inicio
+    for i in range(len(conversation_messages) - 1, -1, -1):
+        test_messages = [system_message] if system_message else []
+        test_messages.extend(conversation_messages[i:])
+        
+        tokens = count_tokens(test_messages)
+        
+        if tokens <= max_tokens:
+            truncated = test_messages
+        else:
+            # Ya no caben más mensajes
+            break
+    
+    messages_removed = len(messages) - len(truncated)
+    if messages_removed > 0:
+        logger.info(f"Removed {messages_removed} old messages. New token count: {count_tokens(truncated)}")
+    
+    return truncated
 
 def clean_messages(messages):
     """
@@ -53,7 +131,10 @@ def llm_models(messages):
 
     # Normalizamos los mensajes antes de enviarlos
     safe_messages = clean_messages(messages)
-    logger.info(f"--- Starting LLM call with {len(safe_messages)} messages ---{safe_messages}")
+    # Truncar si excede el límite de tokens
+    safe_messages = truncate_messages(safe_messages)
+    
+    logger.info(f"--- Starting LLM call with {len(safe_messages)} messages ({count_tokens(safe_messages)} tokens) ---")
 
     content_model1 = None
     content_model2 = None
