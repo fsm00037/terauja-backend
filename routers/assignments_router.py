@@ -357,9 +357,19 @@ def get_questionnaire_completions(
         select(QuestionnaireCompletion)
         .where(QuestionnaireCompletion.patient_id == patient_id, QuestionnaireCompletion.deleted_at == None)
         .options(selectinload(QuestionnaireCompletion.questionnaire))
+        .options(selectinload(QuestionnaireCompletion.assignment))
         .order_by(QuestionnaireCompletion.scheduled_at.desc())
     )
     completions = session.exec(statement).all()
+
+    # Re-calculate is_delayed for display accuracy
+    for c in completions:
+        if c.completed_at and c.scheduled_at and c.assignment:
+            deadline_hours = c.assignment.deadline_hours or 24
+            # If completed after scheduled_at + deadline
+            if c.completed_at > c.scheduled_at + timedelta(hours=deadline_hours):
+                 c.is_delayed = True  
+
     return completions
 
 @router.get("/my-pending", response_model=List[QuestionnaireCompletionWithDetails])
