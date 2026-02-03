@@ -362,15 +362,22 @@ def get_questionnaire_completions(
     )
     completions = session.exec(statement).all()
 
-    # Re-calculate is_delayed for display accuracy
+    # Enrich with deadline_hours
+    results = []
     for c in completions:
+        # Re-calculate is_delayed for display accuracy
         if c.completed_at and c.scheduled_at and c.assignment:
             deadline_hours = c.assignment.deadline_hours or 24
             # If completed after scheduled_at + deadline
             if c.completed_at > c.scheduled_at + timedelta(hours=deadline_hours):
                  c.is_delayed = True  
 
-    return completions
+        c_dict = c.model_dump()
+        c_dict['deadline_hours'] = c.assignment.deadline_hours if c.assignment else None
+        c_dict['questionnaire'] = c.questionnaire 
+        results.append(QuestionnaireCompletionWithDetails(**c_dict))
+
+    return results
 
 @router.get("/my-pending", response_model=List[QuestionnaireCompletionWithDetails])
 def get_my_pending_assignments(
