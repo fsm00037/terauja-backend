@@ -12,7 +12,7 @@ from models import (
 from auth import get_current_user, get_current_actor, get_current_patient, verify_patient_access
 from logging_utils import log_action
 from utils.assignment_utils import calculate_next_scheduled_time, check_and_update_assignment_expiry, cleanup_previous_completions
-from services.firebase_service import send_push_to_patient
+from services.firebase_service import send_push_to_patient, send_questionnaire_assigned_notification
 
 class QuestionnaireCompletionWithDetails(SQLModel):
     id: int
@@ -400,7 +400,7 @@ def get_my_pending_assignments(
         .where(QuestionnaireCompletion.status == "pending")
         .where(QuestionnaireCompletion.scheduled_at <= now)
         .where(QuestionnaireCompletion.deleted_at == None)
-        .options(selectinload(QuestionnaireCompletion.assignment))
+        .options(selectinload(QuestionnaireCompletion.assignment).selectinload(Assignment.questionnaire))
     )
     due_completions = session.exec(statement).all()
     
@@ -409,6 +409,17 @@ def get_my_pending_assignments(
             c.status = "paused"
         else:
             c.status = "sent"
+            
+            # Send notification immediately to ensure delivery
+            try:
+                send_questionnaire_assigned_notification(
+                    patient_id=c.patient_id,
+                    assignment_id=c.assignment_id,
+                    questionnaire_title=c.assignment.questionnaire.title if c.assignment.questionnaire else "Cuestionario"
+                )
+            except Exception as e:
+                print(f"Error sending immediate notification: {e}")
+                
             # Cleanup previous assignments of THIS TYPE (questionnaire_id) for THIS PATIENT
             # This ensures we only have the latest one "active"/sent
             cleanup_previous_completions(
