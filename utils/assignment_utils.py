@@ -73,22 +73,27 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
     """
     Soft-deletes previous incomplete completions (pending, sent, missed) for a specific patient and questionnaire.
     This ensures that when a new questionnaire is essentially 'activated' (sent), old ones are cleared.
-    If older_than is provided, only deletes items scheduled BEFORE that time.
+    
+    Refactored Logic:
+    - We want to keep the LATEST assignment active.
+    - If `current_assignment_id` is provided, we treat that as the "winner" (assuming it's being processed now).
+    - We delete anything that belongs to an OLDER assignment (lower ID).
+    - We delete anything from the SAME assignment that is older than `older_than` (scheduled previously).
+    - logic: delete if (completion.assignment_id < current_assignment_id) OR (completion.assignment_id == current_assignment_id AND completion.scheduled_at < older_than)
     """
     try:
         # Find existing completions that are not completed (pending, sent, missed)
+        # We need to join with Assignment to check the ID
         query = (
             select(QuestionnaireCompletion)
+            .join(Assignment)
             .where(QuestionnaireCompletion.patient_id == patient_id)
             .where(QuestionnaireCompletion.questionnaire_id == questionnaire_id)
             .where(or_(QuestionnaireCompletion.status == "pending", QuestionnaireCompletion.status == "sent", QuestionnaireCompletion.status == "missed"))
             .where(QuestionnaireCompletion.deleted_at == None)
         )
         
-        if older_than:
-            # We want to delete items older than the current one
-            query = query.where(QuestionnaireCompletion.scheduled_at < older_than)
-        
+        # We fetch all candidates and filter in python to be safe and clear about the logic
         existing_completions = session.exec(query).all()
         
         now_utc = datetime.now(timezone.utc)
@@ -99,40 +104,51 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
             # Skip the one we are currently processing (if any)
             if exclude_completion_id and ec.id == exclude_completion_id:
                 continue
-                
-            ec.deleted_at = now_utc
-            session.add(ec)
-            affected_assignment_ids.add(ec.assignment_id)
-            count_deleted += 1
             
-        # Clean up parent assignments if they are NOT the current one
-        if current_assignment_id:
-            for old_aid in affected_assignment_ids:
-                if old_aid != current_assignment_id:
-                    # Check if this assignment has any FUTURE pending items
-                    # If it does, we should NOT delete the assignment, just the old completions we found.
-                    has_future = session.exec(
-                        select(QuestionnaireCompletion)
-                        .where(QuestionnaireCompletion.assignment_id == old_aid)
-                        .where(QuestionnaireCompletion.status == "pending")
-                        .where(QuestionnaireCompletion.scheduled_at > now_utc)
-                        .where(QuestionnaireCompletion.deleted_at == None)
-                    ).first()
-                    
-                    if not has_future:
-                        # Soft delete the old assignment only if it has nothing left
-                        old_assignment = session.get(Assignment, old_aid)
-                        if old_assignment and not old_assignment.deleted_at:
-                            old_assignment.deleted_at = now_utc
-                            session.add(old_assignment)
-                            print(f"Cleanup: Also deleted obsolete assignment {old_aid}")
-                    else:
-                        print(f"Cleanup: Preserved assignment {old_aid} because it has future pending items")
-
-        print(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id} (older_than={older_than})")
-
+            should_delete = False
             
-        print(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id} (older_than={older_than})")
+            if current_assignment_id:
+                # 1. If it belongs to an older assignment, DELETE IT.
+                if ec.assignment_id < current_assignment_id:
+                    should_delete = True
+                # 2. If it belongs to the SAME assignment, check time
+                elif ec.assignment_id == current_assignment_id:
+                    if older_than and ec.scheduled_at and ec.scheduled_at < older_than:
+                        should_delete = True
+                # 3. If it belongs to a NEWER assignment (shouldn't happen if we process in order, but safety), KEEP IT.
+                else:
+                    should_delete = False
+            else:
+                # Legacy fallback if no current_assignment_id provided (shouldn't happen in new flows)
+                if older_than and ec.scheduled_at and ec.scheduled_at < older_than:
+                    should_delete = True
+
+            if should_delete:
+                ec.deleted_at = now_utc
+                session.add(ec)
+                affected_assignment_ids.add(ec.assignment_id)
+                count_deleted += 1
+            
+        # Clean up parent assignments if they are empty of future pending items
+        for old_aid in affected_assignment_ids:
+            # Check if this assignment has any FUTURE pending items
+            has_future = session.exec(
+                select(QuestionnaireCompletion)
+                .where(QuestionnaireCompletion.assignment_id == old_aid)
+                .where(QuestionnaireCompletion.status == "pending")
+                .where(QuestionnaireCompletion.scheduled_at > now_utc)
+                .where(QuestionnaireCompletion.deleted_at == None)
+            ).first()
+            
+            if not has_future:
+                # Soft delete the old assignment only if it has nothing left
+                old_assignment = session.get(Assignment, old_aid)
+                if old_assignment and not old_assignment.deleted_at:
+                    old_assignment.deleted_at = now_utc
+                    session.add(old_assignment)
+                    # print(f"Cleanup: Also deleted obsolete assignment {old_aid}")
+
+        # print(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id} (ref={current_assignment_id})")
             
     except Exception as e:
         print(f"Error in cleanup_previous_completions: {e}")

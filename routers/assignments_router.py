@@ -334,8 +334,9 @@ def get_questionnaire_completions(
     cleanup_triggered = False
     for q_id, items in by_questionnaire.items():
         if not items: continue
-        # Find the "Latest Active" = The one with the max scheduled_at
-        latest_active = max(items, key=lambda x: x.scheduled_at)
+        # Find the "Latest Active" = The one with the max Assignment ID (Creation Order)
+        # Fallback to scheduled_at if assignment_id is somehow missing or equal (unlikely)
+        latest_active = max(items, key=lambda x: (x.assignment_id, x.scheduled_at))
         
         # Cleanup anything older than this latest_active
         # This will delete the older ones
@@ -401,6 +402,7 @@ def get_my_pending_assignments(
         .where(QuestionnaireCompletion.scheduled_at <= now)
         .where(QuestionnaireCompletion.deleted_at == None)
         .options(selectinload(QuestionnaireCompletion.assignment).selectinload(Assignment.questionnaire))
+        .order_by(QuestionnaireCompletion.assignment_id) # Process in creation order (Old -> New)
     )
     due_completions = session.exec(statement).all()
     
