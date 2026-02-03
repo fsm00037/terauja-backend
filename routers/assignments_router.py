@@ -229,7 +229,7 @@ def submit_assignment(
         # Update existing pending completion
         completion = pending_completion
         completion.answers = answers
-        completion.completed_at = datetime.utcnow()
+        completion.completed_at = datetime.now()
         completion.status = "completed"
         
         # Check delay
@@ -241,7 +241,8 @@ def submit_assignment(
         # Fallback: create new one (shouldn't happen with new logic but safe fallback)
         scheduled_at = assignment.next_scheduled_at
         if assignment.next_scheduled_at:
-            if datetime.utcnow() > assignment.next_scheduled_at + timedelta(hours=2):
+            deadline = assignment.deadline_hours if assignment.deadline_hours is not None else 24
+            if datetime.now() > assignment.next_scheduled_at + timedelta(hours=deadline):
                 is_delayed = True
 
         completion = QuestionnaireCompletion(
@@ -250,7 +251,7 @@ def submit_assignment(
             questionnaire_id=assignment.questionnaire_id,
             answers=answers,
             scheduled_at=scheduled_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(),
             is_delayed=is_delayed,
             status="completed"
         )
@@ -300,7 +301,7 @@ def get_questionnaire_completions(
     pending_completions = session.exec(pending_statement).all()
     
     changed = False
-    now = datetime.utcnow()
+    now = datetime.now()
     for c in pending_completions:
         if c.scheduled_at and (c.scheduled_at + timedelta(hours=24) < now):
              c.status = "missed"
@@ -368,9 +369,15 @@ def get_questionnaire_completions(
     for c in completions:
         # Re-calculate is_delayed for display accuracy
         if c.completed_at and c.scheduled_at and c.assignment:
-            deadline_hours = c.assignment.deadline_hours or 24
+            deadline_hours = c.assignment.deadline_hours if c.assignment.deadline_hours is not None else 24
+            
+            
+            # Normalize to avoid offset-naive vs offset-aware issues
+            sched = c.scheduled_at.replace(tzinfo=None) if c.scheduled_at else None
+            comp = c.completed_at.replace(tzinfo=None) if c.completed_at else None
+            
             # If completed after scheduled_at + deadline
-            if c.completed_at > c.scheduled_at + timedelta(hours=deadline_hours):
+            if sched and comp and comp > sched + timedelta(hours=deadline_hours):
                  c.is_delayed = True  
 
         c_dict = c.model_dump()
@@ -389,9 +396,10 @@ def get_my_pending_assignments(
     Get pending assignments for the current patient.
     Checks for any pending completions that are due (scheduled_at <= now).
     Marks them as 'sent' if they are not already sent.
+    Marks them as 'sent' if they are not already sent.
     Returns all 'sent' (and previously 'sent') items that are not completed or missed.
     """
-    now = datetime.utcnow()
+    now = datetime.now()
     
     # 1. Update pending -> sent if due
     statement = (
@@ -502,7 +510,7 @@ def update_assignment_status(
         # Logic for early completion/finalization
         if new_status == "completed" and assignment.status != "completed":
             from datetime import datetime
-            now = datetime.utcnow()
+            now = datetime.now()
             
             # Soft delete future pending completions
             future_pending = session.exec(
