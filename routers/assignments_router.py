@@ -414,22 +414,16 @@ def get_my_pending_assignments(
     )
     due_completions = session.exec(statement).all()
     
+    # FIRST PHASE: Commit state changes to prevent race conditions
+    completions_to_notify = []
+    
     for c in due_completions:
         if c.assignment.status == "paused":
             c.status = "paused"
         else:
             c.status = "sent"
+            completions_to_notify.append(c)
             
-            # Send notification immediately to ensure delivery
-            try:
-                send_questionnaire_assigned_notification(
-                    patient_id=c.patient_id,
-                    assignment_id=c.assignment_id,
-                    questionnaire_title=c.assignment.questionnaire.title if c.assignment.questionnaire else "Cuestionario"
-                )
-            except Exception as e:
-                print(f"Error sending immediate notification: {e}")
-                
             # Cleanup previous assignments of THIS TYPE (questionnaire_id) for THIS PATIENT
             # This ensures we only have the latest one "active"/sent
             cleanup_previous_completions(
@@ -445,6 +439,20 @@ def get_my_pending_assignments(
     
     if due_completions:
         session.commit()
+        # Refresh to ensure we have latest state if needed, though mostly needed for IDs which we likely have
+        for c in completions_to_notify:
+            session.refresh(c)
+            
+    # SECOND PHASE: Send notifications (safe now that DB is updated)
+    for c in completions_to_notify:
+        try:
+            send_questionnaire_assigned_notification(
+                patient_id=c.patient_id,
+                assignment_id=c.assignment_id,
+                questionnaire_title=c.assignment.questionnaire.title if c.assignment.questionnaire else "Cuestionario"
+            )
+        except Exception as e:
+            print(f"Error sending immediate notification: {e}")
     
     # 1.5 Update sent -> missed if > deadline
     statement_missed = (
