@@ -37,18 +37,33 @@ from services.firebase_service import initialize_firebase
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     
-    # Create Default Super Admin if no users exist
+    # Create Default Super Admin if no users exist or specific superadmin is missing
     with Session(engine) as session:
+        # Check for 'superadmin' role user specifically
+        super_admin = session.exec(select(Psychologist).where(Psychologist.email == "superadmin@psicouja.com")).first()
+        if not super_admin:
+            super_admin_user = Psychologist(
+                name="Super Admin",
+                email="superadmin@psicouja.com",
+                password=hash_password("superadmin"),
+                role="superadmin",
+                schedule="Siempre Disponible"
+            )
+            session.add(super_admin_user)
+            session.commit()
+            print("Created default superadmin user: superadmin@psicouja.com")
+
+        # Keep existing admin check for backward compatibility or other admin users
         admin = session.exec(select(Psychologist).where(Psychologist.role == "admin")).first()
         if not admin:
-            super_admin = Psychologist(
+            admin_user = Psychologist(
                 name="Admin",
                 email="admin@psicouja.com",
                 password=hash_password("admin"),
                 role="admin",
                 schedule="Siempre Disponible"
             )
-            session.add(super_admin)
+            session.add(admin_user)
             session.commit()
     
         # Create Default EMA Questionnaire if it doesn't exist
