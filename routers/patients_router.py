@@ -16,6 +16,9 @@ router = APIRouter()
 class AssignRequest(BaseModel):
     psychologist_id: int
 
+class RegenerateCodeResponse(BaseModel):
+    access_code: str
+    
 def generate_access_code():
     return secrets.token_urlsafe(6).upper()
 
@@ -218,3 +221,31 @@ def get_current_patient_profile(
 ):
     """Get the current authenticated patient's profile details."""
     return current_patient
+
+@router.post("/patients/{patient_id}/regenerate-code", response_model=RegenerateCodeResponse)
+def regenerate_access_code_endpoint(
+    patient_id: int,
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    from auth import verify_patient_access
+    verify_patient_access(patient_id, current_user, session)
+    
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+        
+    # Rotate code and version
+    patient.access_code = generate_access_code()
+    patient.token_version = (patient.token_version or 1) + 1
+    
+    # Reset online status to force UI update if they are theoretically online
+    patient.is_online = False
+    
+    session.add(patient)
+    session.commit()
+    session.refresh(patient)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "REGENERATE_CODE", details={"patient_id": patient_id})
+    
+    return {"access_code": patient.access_code}

@@ -56,7 +56,11 @@ def authenticate_patient(login: PatientLoginRequest, session: Session = Depends(
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Generate Token
-    access_token = create_access_token(data={"sub": str(patient.id), "role": "patient"})
+    access_token = create_access_token(data={
+        "sub": str(patient.id), 
+        "role": "patient",
+        "token_version": patient.token_version
+    })
 
     # Set online status
     patient.is_online = True
