@@ -81,6 +81,9 @@ class Patient(SQLModel, table=True):
     last_active: datetime = Field(default_factory=datetime.utcnow)
     total_online_seconds: int = Field(default=0)
     
+    # Auth Versioning
+    token_version: int = Field(default=1)
+    
     # Link to specific psychologist
     psychologist_id: Optional[int] = Field(default=None, foreign_key="psychologist.id")
     psychologist: Optional[Psychologist] = Relationship(back_populates="patients")

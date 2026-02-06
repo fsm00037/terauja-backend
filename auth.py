@@ -169,6 +169,15 @@ async def get_current_patient(
             detail="Patient not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        
+    # Verify token version
+    token_version = payload.get("token_version")
+    if token_version is not None and token_version != patient.token_version:
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired (Token Version Mismatch)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     return patient
 
