@@ -158,3 +158,100 @@ def send_credentials_email(email_receiver, access_code):
         print(f"Email sent successfully to {email_receiver}")
     except Exception as e:
         print(f"Failed to send email: {e}")
+
+def send_password_reset_email(email_receiver, reset_link):
+    email_sender = "infopsicouja@gmail.com"
+    password = os.getenv("PASSWORD")
+
+    if not password:
+        print("Error: PASSWORD environment variable not set. Email not sent.")
+        return
+
+    subject = "Restablecimiento de Contraseña - Psicouja"
+    body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }}
+        .header {{
+            background-color: #0cc0df;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .content {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }}
+        .button {{
+            display: block;
+            width: fit-content;
+            margin: 20px auto;
+            background-color: #0cc0df;
+            color: #ffffff !important;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }}
+        .footer {{
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 3px solid #007a3f;
+            font-size: 12px;
+            color: #666;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Restablecimiento de Contraseña</h1>
+        </div>
+        <div class="content">
+            <p>Hola,</p>
+            <p>Has solicitado restablecer tu contraseña en <strong>Psicouja</strong>. Haz clic en el botón de abajo para continuar:</p>
+            
+            <a href="{reset_link}" class="button">Restablecer Contraseña</a>
+            
+            <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+        </div>
+        <div class="footer">
+            <p>© 2026 Psicouja. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+    em = EmailMessage()
+    em["From"] = email_sender
+    em["To"] = email_receiver
+    em["Subject"] = subject
+    em.set_content(body, subtype="html")
+
+    context = ssl.create_default_context()
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
+            smtp.login(email_sender, password)
+            smtp.sendmail(email_sender, email_receiver, em.as_string())
+        print(f"Reset email sent successfully to {email_receiver}")
+    except Exception as e:
+        print(f"Failed to send reset email: {e}")
