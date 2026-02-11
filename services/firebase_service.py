@@ -71,20 +71,16 @@ def send_push_notification(
         return False
     
     try:
+        # Use data-only message to prevent browser from auto-displaying notification.
+        # Our service worker's onBackgroundMessage handler will display it instead,
+        # avoiding duplicate notifications.
+        message_data = {**(data or {}), "title": title, "body": body}
+        
         message = messaging.Message(
-            notification=messaging.Notification(
-                title=title,
-                body=body,
-            ),
-            data=data or {},
+            data=message_data,
             token=token,
-            # Web push-specific configuration
+            # Web push config (no notification field — data-only)
             webpush=messaging.WebpushConfig(
-                notification=messaging.WebpushNotification(
-                    title=title,
-                    body=body,
-                    icon="/icon.svg",
-                ),
                 fcm_options=messaging.WebpushFCMOptions(
                     link="https://s5-ceatic.ujaen.es:8009/"
                 )
