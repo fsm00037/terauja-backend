@@ -55,7 +55,8 @@ async def run_scheduler():
                             send_questionnaire_assigned_notification(
                                 patient_id=completion.patient_id,
                                 assignment_id=completion.assignment_id,
-                                questionnaire_title=title
+                                questionnaire_title=title,
+                                session=session
                             )
                         except Exception as push_error:
                             logger.error(f"Failed to send push notification: {push_error}")
