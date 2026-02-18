@@ -77,9 +77,9 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
     Refactored Logic:
     - We want to keep the LATEST assignment active.
     - If `current_assignment_id` is provided, we treat that as the "winner" (assuming it's being processed now).
-    - We delete anything that belongs to an OLDER assignment (lower ID).
-    - We delete anything from the SAME assignment that is older than `older_than` (scheduled previously).
-    - logic: delete if (completion.assignment_id < current_assignment_id) OR (completion.assignment_id == current_assignment_id AND completion.scheduled_at < older_than)
+    - For OLDER assignments: only delete completions scheduled at or before `older_than` (preserves future recurring children).
+    - For the SAME assignment: delete completions older than `older_than`.
+    - For NEWER assignments: keep everything.
     """
     try:
         # Find existing completions that are not completed (pending, sent, missed)
@@ -108,9 +108,14 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
             should_delete = False
             
             if current_assignment_id:
-                # 1. If it belongs to an older assignment, DELETE IT.
+                # 1. If it belongs to an older assignment, only delete if scheduled at or before current time.
+                #    This preserves future-scheduled recurring children.
                 if ec.assignment_id < current_assignment_id:
-                    should_delete = True
+                    if older_than and ec.scheduled_at and ec.scheduled_at <= older_than:
+                        should_delete = True
+                    elif not ec.scheduled_at:
+                        # No scheduled time = legacy data, safe to delete
+                        should_delete = True
                 # 2. If it belongs to the SAME assignment, check time
                 elif ec.assignment_id == current_assignment_id:
                     if older_than and ec.scheduled_at and ec.scheduled_at < older_than:
