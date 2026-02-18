@@ -24,6 +24,7 @@ async def run_scheduler():
                     .join(Assignment)
                     .where(QuestionnaireCompletion.status == "pending")
                     .where(QuestionnaireCompletion.scheduled_at <= now)
+                    .order_by(QuestionnaireCompletion.scheduled_at)
                 )
                 pending_items = session.exec(statement_pending).all()
                 
