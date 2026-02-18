@@ -46,6 +46,12 @@ async def run_scheduler():
                         # 3. Send Notification FIRST (At-least-once delivery)
                         # Failure here shouldn't stop the DB update (unless we want strict consistency, but we prefer the user sees it in app)
                         try:
+                            # Refresh to ensure it hasn't been processed by API in the meantime
+                            session.refresh(completion)
+                            if completion.status != "pending":
+                                logger.info(f"Skipping completion {completion.id} as it is no longer pending")
+                                continue
+
                             # Get questionnaire title
                             questionnaire = session.get(Questionnaire, completion.questionnaire_id)
                             title = questionnaire.title if questionnaire else "Cuestionario"

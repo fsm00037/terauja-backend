@@ -444,15 +444,18 @@ def get_my_pending_assignments(
             session.refresh(c)
             
     # SECOND PHASE: Send notifications (safe now that DB is updated)
-    for c in completions_to_notify:
-        try:
-            send_questionnaire_assigned_notification(
-                patient_id=c.patient_id,
-                assignment_id=c.assignment_id,
-                questionnaire_title=c.assignment.questionnaire.title if c.assignment.questionnaire else "Cuestionario"
-            )
-        except Exception as e:
-            print(f"Error sending immediate notification: {e}")
+    # COMMENTED OUT: We rely on the Scheduler for background notifications.
+    # If the user is fetching "my-pending", they are in the app, so we don't need to push a notification.
+    # This prevents duplicate notifications (one from scheduler race, one from here).
+    # for c in completions_to_notify:
+    #     try:
+    #         send_questionnaire_assigned_notification(
+    #             patient_id=c.patient_id,
+    #             assignment_id=c.assignment_id,
+    #             questionnaire_title=c.assignment.questionnaire.title if c.assignment.questionnaire else "Cuestionario"
+    #         )
+    #     except Exception as e:
+    #         print(f"Error sending immediate notification: {e}")
     
     # 1.5 Update sent -> missed if > deadline
     statement_missed = (
