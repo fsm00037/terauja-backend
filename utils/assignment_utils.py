@@ -108,23 +108,23 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
             should_delete = False
             
             if current_assignment_id:
-                # 1. If it belongs to an older assignment, only delete if scheduled at or before current time.
-                #    This preserves future-scheduled recurring children.
-                if ec.assignment_id < current_assignment_id:
+                if ec.assignment_id == current_assignment_id:
+                    # SAME assignment: only delete strictly older scheduled items
+                    if older_than and ec.scheduled_at and ec.scheduled_at < older_than:
+                        should_delete = True
+                else:
+                    # DIFFERENT assignment (older OR newer ID): delete if scheduled at or before current time.
+                    # This ensures both directions work:
+                    #   - Individual (higher ID) cleans up past recurring children (lower ID)
+                    #   - Recurring child (lower ID) cleans up unsent individual (higher ID)
+                    # Future-scheduled completions are preserved in both cases.
                     if older_than and ec.scheduled_at and ec.scheduled_at <= older_than:
                         should_delete = True
                     elif not ec.scheduled_at:
                         # No scheduled time = legacy data, safe to delete
                         should_delete = True
-                # 2. If it belongs to the SAME assignment, check time
-                elif ec.assignment_id == current_assignment_id:
-                    if older_than and ec.scheduled_at and ec.scheduled_at < older_than:
-                        should_delete = True
-                # 3. If it belongs to a NEWER assignment (shouldn't happen if we process in order, but safety), KEEP IT.
-                else:
-                    should_delete = False
             else:
-                # Legacy fallback if no current_assignment_id provided (shouldn't happen in new flows)
+                # Legacy fallback if no current_assignment_id provided
                 if older_than and ec.scheduled_at and ec.scheduled_at < older_than:
                     should_delete = True
 
