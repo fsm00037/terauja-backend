@@ -43,35 +43,39 @@ async def run_scheduler():
                         # 2. Cleanup previous
                         cleanup_previous_completions(session, completion.patient_id, completion.questionnaire_id, exclude_completion_id=completion.id)
                         
-                        # 3. Send Notification FIRST (At-least-once delivery)
-                        # Failure here shouldn't stop the DB update (unless we want strict consistency, but we prefer the user sees it in app)
+                        # 3. Update status and Commit FIRST
+                        # This releases the DB lock so that the notification service can open a new connection/session safely.
+                        completion.status = "sent"
+                        session.add(completion)
+                        session.commit()
+                        session.refresh(completion)
+                        count_sent += 1
+                        
+                        # 4. Send Notification (Best Effort)
                         try:
-                            # Refresh to ensure it hasn't been processed by API in the meantime
-                            session.refresh(completion)
-                            if completion.status != "pending":
-                                logger.info(f"Skipping completion {completion.id} as it is no longer pending")
-                                continue
-
                             # Get questionnaire title
                             questionnaire = session.get(Questionnaire, completion.questionnaire_id)
                             title = questionnaire.title if questionnaire else "Cuestionario"
                             
                             logger.info(f"Sending notification for patient {completion.patient_id}, assignment {completion.assignment_id}")
                             
-                            send_questionnaire_assigned_notification(
+                            # Ensure firebase is init (safe to call multiple times)
+                            from services.firebase_service import initialize_firebase
+                            initialize_firebase()
+                            
+                            # No need to pass 'session', let it create its own short-lived session
+                            sent_count = send_questionnaire_assigned_notification(
                                 patient_id=completion.patient_id,
                                 assignment_id=completion.assignment_id,
-                                questionnaire_title=title,
-                                session=session
+                                questionnaire_title=title
                             )
+                            logger.info(f"Notification result for {completion.id}: Sent to {sent_count} devices")
                         except Exception as push_error:
                             logger.error(f"Failed to send push notification: {push_error}")
-
-                        # 4. Update status and Commit
-                        completion.status = "sent"
-                        session.add(completion)
-                        session.commit()
-                        count_sent += 1
+                            import traceback
+                            traceback.print_exc()
+                            with open("scheduler_error.log", "a") as f:
+                                f.write(f"{datetime.utcnow()} - Error sending push: {push_error}\n")
                         
                     except Exception as item_error:
                         logger.error(f"Error processing completion {completion.id}: {item_error}")
