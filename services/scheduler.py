@@ -41,7 +41,14 @@ async def run_scheduler():
                             continue
 
                         # 2. Cleanup previous
-                        cleanup_previous_completions(session, completion.patient_id, completion.questionnaire_id, exclude_completion_id=completion.id)
+                        cleanup_previous_completions(
+                            session, 
+                            completion.patient_id, 
+                            completion.questionnaire_id, 
+                            exclude_completion_id=completion.id,
+                            current_assignment_id=completion.assignment_id,
+                            older_than=completion.scheduled_at
+                        )
                         
                         # 3. Update status and Commit FIRST
                         # This releases the DB lock so that the notification service can open a new connection/session safely.
