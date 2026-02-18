@@ -71,15 +71,21 @@ def send_push_notification(
         return False
     
     try:
-        # Use data-only message to prevent browser from auto-displaying notification.
-        # Our service worker's onBackgroundMessage handler will display it instead,
-        # avoiding duplicate notifications.
+        # Include BOTH notification and data fields:
+        # - notification: triggers OS-level display when app is in background (required for iOS)
+        # - data: carries metadata for click routing (type, id, click_action)
+        # The service worker should NOT manually showNotification since the browser
+        # auto-displays from the notification field in background.
+        # In foreground, onMessage intercepts and shows a toast instead.
         message_data = {**(data or {}), "title": title, "body": body}
         
         message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body,
+            ),
             data=message_data,
             token=token,
-            # Web push config (no notification field — data-only)
             webpush=messaging.WebpushConfig(
                 fcm_options=messaging.WebpushFCMOptions(
                     link="https://s5-ceatic.ujaen.es:8009/"
