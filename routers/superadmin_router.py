@@ -19,8 +19,10 @@ async def get_platform_stats(session: Session = Depends(get_session)):
     # Message stats
     from models import Message, Session as TherapySession
     
-    total_messages_psychologist = session.exec(select(func.count(Message.id)).where(Message.is_from_patient == False)).one()
-    total_messages_patient = session.exec(select(func.count(Message.id)).where(Message.is_from_patient == True)).one()
+    messages = session.exec(select(Message)).all()
+    total_messages_psychologist = sum(1 for m in messages if not m.is_from_patient)
+    total_messages_patient = sum(1 for m in messages if m.is_from_patient)
+    total_words = sum(len(m.content.split()) for m in messages if m.content)
 
     # Add messages from Session.chat_snapshot
     sessions = session.exec(select(TherapySession)).all()
@@ -31,6 +33,10 @@ async def get_platform_stats(session: Session = Depends(get_session)):
                     total_messages_patient += 1
                 elif msg.get("sender") == "therapist":
                     total_messages_psychologist += 1
+                
+                text = msg.get("text")
+                if isinstance(text, str):
+                    total_words += len(text.split())
 
     # Online stats
     now_utc = datetime.utcnow()
@@ -55,7 +61,8 @@ async def get_platform_stats(session: Session = Depends(get_session)):
         "online_psychologists": psychologists_online,
         "online_patients": patients_online,
         "total_messages_psychologist": total_messages_psychologist,
-        "total_messages_patient": total_messages_patient
+        "total_messages_patient": total_messages_patient,
+        "total_words": total_words
     }
 
 class PsychologistCreate(SQLModel):
@@ -204,7 +211,8 @@ async def get_detailed_users(session: Session = Depends(get_session)):
             "sessions_count": session_count,
             "ai_clicks": ai_clicks,
             "message_count": msg_count,
-            "word_count": word_count
+            "word_count": word_count,
+            "last_active": psych.last_active
         })
         
     # 3. Process Patients
