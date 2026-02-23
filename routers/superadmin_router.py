@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select, func, SQLModel
 from typing import List, Optional
+from datetime import datetime, timezone, timedelta
 
 from database import get_session
 from models import Psychologist, Patient, PsychologistRead
@@ -16,14 +17,37 @@ async def get_platform_stats(session: Session = Depends(get_session)):
     total_patients = session.exec(select(func.count(Patient.id))).one()
     
     # Message stats
-    from models import Message
+    from models import Message, Session as TherapySession
     
     total_messages_psychologist = session.exec(select(func.count(Message.id)).where(Message.is_from_patient == False)).one()
     total_messages_patient = session.exec(select(func.count(Message.id)).where(Message.is_from_patient == True)).one()
 
+    # Add messages from Session.chat_snapshot
+    sessions = session.exec(select(TherapySession)).all()
+    for s in sessions:
+        if s.chat_snapshot:
+            for msg in s.chat_snapshot:
+                if msg.get("sender") == "patient":
+                    total_messages_patient += 1
+                elif msg.get("sender") == "therapist":
+                    total_messages_psychologist += 1
+
     # Online stats
-    psychologists_online = session.exec(select(func.count(Psychologist.id)).where(Psychologist.is_online == True).where(Psychologist.role != "superadmin")).one()
-    patients_online = session.exec(select(func.count(Patient.id)).where(Patient.is_online == True)).one()
+    now_utc = datetime.utcnow()
+    active_limit = now_utc - timedelta(seconds=120)
+
+    psychologists_online = session.exec(
+        select(func.count(Psychologist.id))
+        .where(Psychologist.role != "superadmin")
+        .where(Psychologist.is_online == True)
+        .where(Psychologist.last_active >= active_limit)
+    ).one()
+    
+    patients_online = session.exec(
+        select(func.count(Patient.id))
+        .where(Patient.is_online == True)
+        .where(Patient.last_active >= active_limit)
+    ).one()
     
     return {
         "total_psychologists": total_psychologists,
@@ -98,15 +122,12 @@ async def list_users(
 async def get_daily_message_stats(session: Session = Depends(get_session)):
     """Get total messages per day for the last 30 days."""
     from datetime import datetime, timedelta
-    from models import Message
+    from models import Message, Session as TherapySession
     
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     
-    # This is a bit complex in pure SQLModel without raw SQL for date truncation across DBs
-    # We will fetch messages and aggregate in python for simplicity and DB compatibility (SQLite/Postgres)
-    # properly optimizing this would require dialect-specific SQL (e.g. strftime for sqlite vs date_trunc for pg)
-    
     messages = session.exec(select(Message).where(Message.created_at >= thirty_days_ago)).all()
+    sessions = session.exec(select(TherapySession).where(TherapySession.date >= thirty_days_ago)).all()
     
     stats = {}
     
@@ -122,6 +143,16 @@ async def get_daily_message_stats(session: Session = Depends(get_session)):
                 stats[date_str]["patient_count"] += 1
             else:
                 stats[date_str]["psychologist_count"] += 1
+
+    for s in sessions:
+        if s.chat_snapshot:
+            date_str = s.date.strftime("%Y-%m-%d")
+            if date_str in stats:
+                for msg in s.chat_snapshot:
+                    if msg.get("sender") == "patient":
+                        stats[date_str]["patient_count"] += 1
+                    elif msg.get("sender") == "therapist":
+                        stats[date_str]["psychologist_count"] += 1
                 
     return list(stats.values())
 
@@ -135,6 +166,9 @@ async def get_detailed_users(session: Session = Depends(get_session)):
     psychologists = session.exec(select(Psychologist).where(Psychologist.role != "superadmin").options(selectinload(Psychologist.patients))).all()
     patients = session.exec(select(Patient).options(selectinload(Patient.psychologist))).all()
     
+    # Fetch all sessions for efficient filtering
+    all_sessions = session.exec(select(TherapySession)).all()
+    
     # 2. Process Psychologists
     psych_list = []
     for psych in psychologists:
@@ -142,7 +176,8 @@ async def get_detailed_users(session: Session = Depends(get_session)):
         patient_count = len(psych.patients)
         
         # Count sessions
-        session_count = session.exec(select(func.count(TherapySession.id)).where(TherapySession.psychologist_id == psych.id)).one()
+        psych_sessions = [s for s in all_sessions if s.psychologist_id == psych.id]
+        session_count = len(psych_sessions)
         
         # Count AI Clicks
         ai_clicks = session.exec(select(func.count(AISuggestionLog.id)).where(AISuggestionLog.psychologist_id == psych.id).where(AISuggestionLog.final_option_id != None)).one()
@@ -151,6 +186,13 @@ async def get_detailed_users(session: Session = Depends(get_session)):
         messages = session.exec(select(Message).where(Message.psychologist_id == psych.id).where(Message.is_from_patient == False)).all()
         msg_count = len(messages)
         word_count = sum(len(m.content.split()) for m in messages)
+        
+        for s in psych_sessions:
+            if s.chat_snapshot:
+                for msg in s.chat_snapshot:
+                    if msg.get("sender") == "therapist" and isinstance(msg.get("text"), str):
+                        msg_count += 1
+                        word_count += len(msg["text"].split())
         
         psych_list.append({
             "id": psych.id,
@@ -173,6 +215,14 @@ async def get_detailed_users(session: Session = Depends(get_session)):
         msg_count = len(messages)
         word_count = sum(len(m.content.split()) for m in messages)
         
+        pat_sessions = [s for s in all_sessions if s.patient_id == pat.id]
+        for s in pat_sessions:
+            if s.chat_snapshot:
+                for msg in s.chat_snapshot:
+                    if msg.get("sender") == "patient" and isinstance(msg.get("text"), str):
+                        msg_count += 1
+                        word_count += len(msg["text"].split())
+        
         psych_name = pat.psychologist.name if pat.psychologist else "Sin asignar"
         
         patient_list.append({
@@ -190,5 +240,6 @@ async def get_detailed_users(session: Session = Depends(get_session)):
         "psychologists": psych_list,
         "patients": patient_list
     }
+
 
 
