@@ -24,6 +24,8 @@ async def run_scheduler():
                     .join(Assignment)
                     .where(QuestionnaireCompletion.status == "pending")
                     .where(QuestionnaireCompletion.scheduled_at <= now)
+                    .where(QuestionnaireCompletion.deleted_at == None)
+                    .where(Assignment.deleted_at == None)
                     .order_by(QuestionnaireCompletion.scheduled_at)
                 )
                 pending_items = session.exec(statement_pending).all()
@@ -96,6 +98,7 @@ async def run_scheduler():
                     select(QuestionnaireCompletion)
                     .where(QuestionnaireCompletion.status == "sent")
                     .where(QuestionnaireCompletion.scheduled_at <= expiration_time)
+                    .where(QuestionnaireCompletion.deleted_at == None)
                 )
                 expired_to_missed = session.exec(statement_expired).all()
                 
