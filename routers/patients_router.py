@@ -18,6 +18,9 @@ class AssignRequest(BaseModel):
 
 class RegenerateCodeResponse(BaseModel):
     access_code: str
+
+class UpdateCodeRequest(BaseModel):
+    new_code: str
     
 def generate_access_code():
     return secrets.token_urlsafe(6).upper()
@@ -249,3 +252,26 @@ def regenerate_access_code_endpoint(
     log_action(session, current_user.id, "psychologist", current_user.name, "REGENERATE_CODE", details={"patient_id": patient_id})
     
     return {"access_code": patient.access_code}
+
+@router.patch("/patients/{patient_id}/code")
+def update_patient_code(
+    patient_id: int, 
+    req: UpdateCodeRequest,
+    session: Session = Depends(get_session), 
+    current_user: Psychologist = Depends(get_current_user)
+):
+    from auth import verify_patient_access
+    verify_patient_access(patient_id, current_user, session)
+    
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+        
+    patient.patient_code = req.new_code
+    session.add(patient)
+    session.commit()
+    session.refresh(patient)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_PATIENT_CODE", details={"patient_id": patient_id, "new_code": req.new_code})
+    
+    return {"ok": True, "patient_code": patient.patient_code}
