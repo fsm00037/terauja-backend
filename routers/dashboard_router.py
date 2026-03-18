@@ -136,9 +136,21 @@ def get_dashboard_stats(
         q_online = q_online.where(Patient.psychologist_id == psychologist_id)
     online_patients = session.exec(q_online).all()
 
+    # Unread messages count (from patients to psychologist)
+    q_unread_messages = select(func.count(Message.id)).join(Patient).where(
+        Message.is_from_patient == True,
+        Message.read == False,
+        Message.deleted_at == None
+    )
+    if psychologist_id:
+        q_unread_messages = q_unread_messages.where(Patient.psychologist_id == psychologist_id)
+    
+    unread_messages_count = session.exec(q_unread_messages).one()
+
     return {
         "total_patients": len(total_patients),
         "total_messages": len(total_messages),
+        "unread_messages": unread_messages_count,
         "completed_questionnaires": completed_questionnaires_count,
         "unread_questionnaires": unread_questionnaires_count,
         "pending_questionnaires": pending_count,
