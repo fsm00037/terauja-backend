@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List
 
+from pydantic import BaseModel
 from database import get_session
 from models import Message, MessageCreate, MessageRead, Psychologist
+from utils.state import set_typing
 from auth import get_current_user, get_current_actor, verify_patient_access
 from logging_utils import log_action
 from services.firebase_service import send_push_to_patient, send_new_message_notification
@@ -168,3 +170,43 @@ def delete_messages(
     )
     
     return {"ok": True, "deleted": True}
+
+class TypingRequest(BaseModel):
+    patient_id: int
+    is_typing: bool
+
+@router.post("/typing")
+def update_typing_status(
+    req: TypingRequest,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_actor)
+):
+    actor_type = "psychologist" if hasattr(current_user, "role") else "patient"
+    if actor_type == "patient":
+        if current_user.id != req.patient_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        set_typing(f"patient_{req.patient_id}", req.is_typing)
+    else:
+        verify_patient_access(req.patient_id, current_user, session)
+        set_typing(f"psychologist_{req.patient_id}", req.is_typing)
+    return {"ok": True}
+
+from utils.state import get_typing
+
+@router.get("/{patient_id}/typing")
+def get_typing_status(
+    patient_id: int,
+    session: Session = Depends(get_session),
+    current_user = Depends(get_current_actor)
+):
+    actor_type = "psychologist" if hasattr(current_user, "role") else "patient"
+    if actor_type == "patient":
+        if current_user.id != patient_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    else:
+        verify_patient_access(patient_id, current_user, session)
+        
+    return {
+        "psychologist_is_typing": get_typing(f"psychologist_{patient_id}"),
+        "patient_is_typing": get_typing(f"patient_{patient_id}")
+    }
