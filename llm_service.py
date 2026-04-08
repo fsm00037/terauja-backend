@@ -134,7 +134,7 @@ async def _call_qwen(messages):
     try:
         logger.info("Calling Qwen model...")
         response = await client.chat.completions.create(
-            model=url_prefix + "Qwen/Qwen3-8B",
+            model="Qwen3.5-9B",
             messages=messages,
             max_tokens=256,
             temperature=0.7,
@@ -163,7 +163,7 @@ async def _call_gemma(messages):
     try:
         logger.info("Calling Gemma model...")
         response = await client.chat.completions.create(
-            model=url_prefix + "google/gemma-3-12b-it",
+            model="gemma-4-E4B-it",
             messages=gemma_messages,
             max_tokens=256,
             temperature=0.7
