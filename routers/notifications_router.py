@@ -10,6 +10,7 @@ from database import get_session
 from models import FCMToken, Patient, Psychologist
 from auth import get_current_patient, get_current_user
 from services.firebase_service import send_push_notification, send_push_to_patient
+from utils.logger import logger
 
 router = APIRouter()
 
@@ -34,10 +35,7 @@ def register_fcm_token(
     Register an FCM token for the current patient.
     If the token already exists, update its timestamp.
     """
-    import logging
-    logger = logging.getLogger("notifications")
     logger.info(f"[FCM] Register token request received for patient {current_patient.id}")
-    # logger.info(f"[FCM] Registering token for patient {current_patient.id}: {request.token[:30]}...")
     
     # Check if token already exists
     existing = session.exec(
@@ -127,16 +125,8 @@ def test_notification(
     """
     Send a test notification to the current patient's devices.
     """
-    import logging
-    logger = logging.getLogger("notifications")
-    
     # Debug: Check tokens in DB
     tokens = session.exec(select(FCMToken).where(FCMToken.patient_id == current_patient.id)).all()
-    # logger.info(f"[TEST] Patient ID: {current_patient.id}, FCM Tokens count: {len(tokens)}")
-    
-    # Also check all tokens
-    all_tokens = session.exec(select(FCMToken)).all()
-    # logger.info(f"[TEST] Total FCM tokens in DB: {len(all_tokens)}")
     
     success_count = send_push_to_patient(
         patient_id=current_patient.id,

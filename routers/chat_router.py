@@ -10,6 +10,7 @@ from database import get_session
 from models import Psychologist
 from auth import get_current_user
 from llm_service import generate_response_options, generate_response_options_stream
+from utils.logger import logger
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ async def get_chat_recommendations_stream(
     opción en cuanto está disponible. El evento final 'done' incluye el
     ai_suggestion_log_id guardado en BD.
     """
-    print(f"--- Stream Recommendation Request from Psychologist {current_user.id} ---")
+    logger.info(f"Stream Recommendation: Psych {current_user.id} -> Patient {context.patient_id}")
     
     therapist = session.get(Psychologist, current_user.id)
     if not therapist:
@@ -89,7 +90,7 @@ async def get_chat_recommendations_stream(
                         session.refresh(new_ai_log)
                         log_id = new_ai_log.id
                     except Exception as db_err:
-                        print(f"Error saving AISuggestionLog: {db_err}")
+                        logger.error(f"Error saving AISuggestionLog: {db_err}")
                         session.rollback()
                         log_id = None
 
@@ -101,7 +102,7 @@ async def get_chat_recommendations_stream(
                     yield f"data: {json.dumps(done_event)}\n\n"
 
         except Exception as e:
-            print(f"Error in stream event_generator: {e}")
+            logger.error(f"Error in stream event_generator: {e}")
             error_event = {"type": "error", "message": str(e)}
             yield f"data: {json.dumps(error_event)}\n\n"
 
@@ -123,7 +124,7 @@ async def get_chat_recommendations(
     current_user: Psychologist = Depends(get_current_user)
 ):
     """Endpoint estándar (no-streaming) — ahora también usa llamadas paralelas internamente."""
-    print(f"--- Chat Recommendation Request from Psychologist {current_user.id} ---")
+    logger.info(f"Chat Recommendation: Psych {current_user.id} -> Patient {context.patient_id}")
     try:
         therapist = session.get(Psychologist, current_user.id)
         if not therapist:
@@ -168,6 +169,6 @@ async def get_chat_recommendations(
         }
 
     except Exception as e:
-        print(f"Error getting recommendations: {e}")
+        logger.error(f"Error getting recommendations: {e}")
         session.rollback()
         raise HTTPException(status_code=500, detail="Failed to generate recommendations")

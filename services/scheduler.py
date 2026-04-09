@@ -5,11 +5,7 @@ from database import engine
 from models import QuestionnaireCompletion, Assignment, Questionnaire
 from services.firebase_service import send_questionnaire_assigned_notification
 from utils.assignment_utils import cleanup_previous_completions
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("scheduler")
+from utils.logger import logger
 
 async def run_scheduler():
     logger.info("Starting background scheduler...")
@@ -82,8 +78,7 @@ async def run_scheduler():
                             logger.info(f"Notification result for {completion.id}: Sent to {sent_count} devices")
                         except Exception as push_error:
                             logger.error(f"Failed to send push notification: {push_error}")
-                            import traceback
-                            traceback.print_exc()
+                            # logger.debug(traceback.format_exc())
                             with open("scheduler_error.log", "a") as f:
                                 f.write(f"{datetime.utcnow()} - Error sending push: {push_error}\n")
                         

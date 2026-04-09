@@ -8,10 +8,7 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 from sqlmodel import Session, select
 from database import engine
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("firebase_service")
+from utils.logger import logger
 
 # Firebase app instance
 _firebase_app: Optional[firebase_admin.App] = None

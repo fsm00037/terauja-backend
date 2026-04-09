@@ -10,6 +10,7 @@ from database import get_session
 from models import Patient, PatientReadWithAssignments, PatientRead, Psychologist, Message, Assignment, QuestionnaireCompletion
 from auth import get_current_user, require_admin, get_current_patient
 from logging_utils import log_action
+from utils.logger import logger
 
 router = APIRouter()
 

@@ -8,6 +8,7 @@ from models import Psychologist, PsychologistRead, PsychologistUpdate, Patient
 from auth import hash_password, require_admin, get_current_user
 from logging_utils import log_action
 from utils.sender import send_credentials_email
+from utils.logger import logger
 
 router = APIRouter()
 

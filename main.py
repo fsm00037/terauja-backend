@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 from services.scheduler import run_scheduler
+from utils.logger import logger
 
 load_dotenv()
 
@@ -51,7 +52,7 @@ async def lifespan(app: FastAPI):
             )
             session.add(super_admin_user)
             session.commit()
-            print("Created default superadmin user: superadmin@psicouja.com")
+            logger.success("Created default superadmin user: superadmin@psicouja.com")
 
         # Keep existing admin check for backward compatibility or other admin users
         admin = session.exec(select(Psychologist).where(Psychologist.role == "admin")).first()
@@ -132,6 +133,7 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    for route in app.routes:
-        print(f"Registered route: {route.path}")
+    route_paths = [r.path for r in app.routes if hasattr(r, "path")]
+    logger.info(f"Registered {len(route_paths)} routes")
+    logger.info("Starting Psicouja Backend on http://0.0.0.0:8001")
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

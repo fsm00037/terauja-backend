@@ -6,6 +6,7 @@ from database import get_session
 from models import Note, NoteRead, Psychologist
 from auth import get_current_user, verify_patient_access
 from logging_utils import log_action
+from utils.logger import logger
 
 router = APIRouter()
 

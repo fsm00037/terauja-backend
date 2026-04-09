@@ -5,6 +5,7 @@ from typing import List
 from database import get_session
 from models import AuditLog, Psychologist
 from auth import require_admin
+from utils.logger import logger
 
 router = APIRouter()
 

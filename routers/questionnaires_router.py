@@ -6,6 +6,7 @@ from database import get_session
 from models import Questionnaire, QuestionnaireRead, Psychologist
 from auth import get_current_user
 from logging_utils import log_action
+from utils.logger import logger
 
 router = APIRouter()
 

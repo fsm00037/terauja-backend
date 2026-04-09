@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from email.message import EmailMessage
 import ssl
 import smtplib
+from utils.logger import logger
 
 load_dotenv()
 
@@ -11,7 +12,7 @@ def send_credentials_email(email_receiver, access_code):
     password = os.getenv("PASSWORD")
 
     if not password:
-        print("Error: PASSWORD environment variable not set. Email not sent.")
+        logger.error("PASSWORD environment variable not set. Email not sent.")
         return
 
     subject = "Bienvenido a Psicouja"
@@ -155,16 +156,16 @@ def send_credentials_email(email_receiver, access_code):
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
             smtp.login(email_sender, password)
             smtp.sendmail(email_sender, email_receiver, em.as_string())
-        print(f"Email sent successfully to {email_receiver}")
+        logger.success(f"Email sent successfully to {email_receiver}")
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        logger.error(f"Failed to send email: {e}")
 
 def send_password_reset_email(email_receiver, reset_link):
     email_sender = "infopsicouja@gmail.com"
     password = os.getenv("PASSWORD")
 
     if not password:
-        print("Error: PASSWORD environment variable not set. Email not sent.")
+        logger.error("PASSWORD environment variable not set. Email not sent.")
         return
 
     subject = "Restablecimiento de Contraseña - Psicouja"
@@ -252,6 +253,6 @@ def send_password_reset_email(email_receiver, reset_link):
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
             smtp.login(email_sender, password)
             smtp.sendmail(email_sender, email_receiver, em.as_string())
-        print(f"Reset email sent successfully to {email_receiver}")
+        logger.success(f"Reset email sent successfully to {email_receiver}")
     except Exception as e:
-        print(f"Failed to send reset email: {e}")
+        logger.error(f"Failed to send reset email: {e}")

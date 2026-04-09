@@ -2,6 +2,7 @@ import random
 from datetime import datetime, timedelta, time, timezone
 from sqlmodel import Session, select, or_
 from models import Assignment, QuestionnaireCompletion
+from utils.logger import logger
 
 def calculate_next_scheduled_time(assignment: Assignment, last_questionnaire_sent_at: datetime = None):
     """
@@ -35,12 +36,7 @@ def calculate_next_scheduled_time(assignment: Assignment, last_questionnaire_sen
         window_end_dt = datetime.combine(candidate_date, end_time)
         
         actual_search_start = max(window_start_dt, buffer_now, earliest_by_gap)
-        print(".................................................................")
-        print("actual_search_start",actual_search_start)
-        print("window_end_dt",window_end_dt)
-        print("buffer_now",buffer_now)
-        print("earliest_by_gap",earliest_by_gap)
-        print(".................................................................")
+        # Silenced debug prints to reduce noise
         
         if actual_search_start < window_end_dt:
             seconds_avail = int((window_end_dt - actual_search_start).total_seconds())
@@ -151,12 +147,12 @@ def cleanup_previous_completions(session: Session, patient_id: int, questionnair
                 if old_assignment and not old_assignment.deleted_at:
                     old_assignment.deleted_at = now_utc
                     session.add(old_assignment)
-                    # print(f"Cleanup: Also deleted obsolete assignment {old_aid}")
+                    logger.info(f"Cleanup: Also deleted obsolete assignment {old_aid}")
 
-        # print(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id} (ref={current_assignment_id})")
+        logger.info(f"Cleanup: Deleted {count_deleted} previous completions for patient {patient_id} questionnaire {questionnaire_id} (ref={current_assignment_id})")
             
     except Exception as e:
-        print(f"Error in cleanup_previous_completions: {e}")
+        logger.error(f"Error in cleanup_previous_completions: {e}")
 
 def generate_schedule_dates(start_date_str: str, end_date_str: str, frequency_type: str, count: int, window_start: str = "09:00", window_end: str = "21:00") -> list[datetime]:
 
@@ -218,9 +214,8 @@ def generate_schedule_dates(start_date_str: str, end_date_str: str, frequency_ty
 
         # Sort dates just in case
         dates.sort()
-        print(f"DEBUG: generate_schedule_dates inputs: start={start_date_str}, end={end_date_str}, type={frequency_type}, count={count}, w_start={window_start}, w_end={window_end}")
-        print(f"DEBUG: Generated {len(dates)} dates. First: {dates[0] if dates else 'None'}")
+        # logger.debug(f"Generated {len(dates)} dates for schedule")
         return dates
     except Exception as e:
-        print(f"Error generating schedule: {e}")
+        logger.error(f"Error generating schedule: {e}")
         return []

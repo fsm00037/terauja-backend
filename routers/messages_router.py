@@ -9,11 +9,8 @@ from utils.state import set_typing
 from auth import get_current_user, get_current_actor, verify_patient_access
 from logging_utils import log_action
 from services.firebase_service import send_push_to_patient, send_new_message_notification
-import logging
+from utils.logger import logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("messages_router")
 router = APIRouter()
 
 @router.post("", response_model=MessageRead)

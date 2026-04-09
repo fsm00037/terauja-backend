@@ -8,6 +8,7 @@ from models import Psychologist, Patient
 from auth import hash_password, verify_password, create_access_token, get_current_actor, get_current_patient, decode_token
 from logging_utils import log_action
 from utils.sender import send_password_reset_email
+from utils.logger import logger
 
 router = APIRouter()
 
@@ -40,6 +41,7 @@ def login(creds: LoginRequest, session: Session = Depends(get_session)):
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
     
     # Log successful login
+    logger.info(f"Psychologist Login: {user.email}")
     log_action(session, user.id, "psychologist", user.name, "LOGIN", details="Successful login")
     
     # Set online status
@@ -73,6 +75,8 @@ def authenticate_patient(login: PatientLoginRequest, session: Session = Depends(
         "role": "patient",
         "token_version": patient.token_version
     })
+
+    logger.info(f"Patient Login: {patient.patient_code}")
 
     # Set online status
     patient.is_online = True
@@ -132,7 +136,7 @@ def forgot_password(
     
     # In a real app, send email. Here, we log it.
     reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
-    # print(f"\n[EMAIL MOCK] Password Reset Link for {user.email}: {reset_link}\n")
+    logger.info(f"Password reset requested for {user.email}")
     send_password_reset_email(user.email, reset_link)
     
     return {"ok": True}

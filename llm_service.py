@@ -8,17 +8,14 @@ import tiktoken
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(BASE_DIR, "llm_activity.log")
 
-# Crear handler con encoding explícito
-handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
+from utils.logger import logger
 
-# Configurar el logger
-logger = logging.getLogger("llm_service")
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
-logger.propagate = False  # Evitar duplicados en terminal
+# Agregar handler de actividad LLM al logger centralizado
+llm_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
+llm_handler.setLevel(logging.INFO)
+llm_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+llm_handler.setFormatter(llm_formatter)
+logger.addHandler(llm_handler)
 
 load_dotenv()
 
@@ -63,7 +60,8 @@ def truncate_messages(messages, max_tokens=MAX_TOKENS - RESERVED_TOKENS):
     current_tokens = count_tokens(messages)
     
     if current_tokens <= max_tokens:
-        logger.info(f"Messages within token limit: {current_tokens}/{max_tokens} tokens")
+        # Se ha reducido el ruido de este log ya que es informativo pero frecuente
+        # logger.debug(f"Messages within token limit: {current_tokens}/{max_tokens} tokens")
         return messages
     
     logger.warning(f"Messages exceed token limit: {current_tokens}/{max_tokens} tokens. Truncating...")
@@ -324,7 +322,7 @@ async def generate_response_options_stream(chat_history, therapist_style=None, t
     safe_messages = clean_messages(messages)
     safe_messages = truncate_messages(safe_messages)
     
-    logger.info(f"--- Starting PARALLEL LLM calls ({len(safe_messages)} messages, {count_tokens(safe_messages)} tokens) ---")
+    logger.info(f"LLM Parallel Request: {len(safe_messages)} messages, {count_tokens(safe_messages)} tokens")
     
     # Crear las 3 coroutines con su índice
     # Cola compartida: cada tarea mete (idx, resultado) cuando termina

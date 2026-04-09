@@ -13,6 +13,7 @@ from auth import get_current_user, get_current_actor, get_current_patient, verif
 from logging_utils import log_action
 from utils.assignment_utils import calculate_next_scheduled_time, check_and_update_assignment_expiry, cleanup_previous_completions
 from services.firebase_service import send_push_to_patient, send_questionnaire_assigned_notification
+from utils.logger import logger
 
 class QuestionnaireCompletionWithDetails(SQLModel):
     id: int

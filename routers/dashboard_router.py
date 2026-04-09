@@ -7,6 +7,7 @@ from database import get_session
 from models import Patient, Message, Assignment, QuestionnaireCompletion, Questionnaire, Psychologist
 from auth import get_current_user
 from utils.assignment_utils import check_and_update_assignment_expiry
+from utils.logger import logger
 
 router = APIRouter()
 

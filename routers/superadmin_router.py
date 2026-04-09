@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 from database import get_session
 from models import Psychologist, Patient, PsychologistRead
 from auth import require_superadmin, hash_password
+from utils.logger import logger
 
 router = APIRouter()
 

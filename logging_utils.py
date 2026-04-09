@@ -1,6 +1,7 @@
 from sqlmodel import Session
 from models import AuditLog
 import json
+from utils.logger import logger
 
 def log_action(
     session: Session,
@@ -12,7 +13,7 @@ def log_action(
     ip_address: str = None
 ):
     """
-    Logs a user action to the AuditLog table.
+    Logs a user action to the AuditLog table and the centralized logger.
     """
     try:
         details_str = ""
@@ -32,13 +33,14 @@ def log_action(
         session.add(log_entry)
         session.commit()
         
-        # Also write to file
-        log_line = f"[{log_entry.timestamp}] {actor_type.upper()} ({actor_name} ID:{actor_id}) - {action}: {details_str}"
+        # Log to centralized logger instead of print/manual file
+        log_msg = f"{action} | {actor_type.upper()}: {actor_name} (ID:{actor_id})"
+        if details_str:
+            log_msg += f" | Details: {details_str}"
         if ip_address:
-            log_line += f" [IP: {ip_address}]"
-        
-        with open("audit.log", "a", encoding="utf-8") as f:
-            f.write(log_line + "\n")
+            log_msg += f" | IP: {ip_address}"
+            
+        logger.success(f"Audit: {log_msg}")
             
     except Exception as e:
-        print(f"Failed to write audit log: {e}")
+        logger.error(f"Failed to write audit log: {e}")
