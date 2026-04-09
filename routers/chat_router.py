@@ -40,7 +40,18 @@ async def get_chat_recommendations_stream(
     # Capturamos los parámetros ahora (antes de entrar al generador)
     therapist_style = therapist.ai_style
     therapist_tone = therapist.ai_tone
-    therapist_instructions = therapist.ai_instructions
+    
+    # Combinamos instrucciones globales del terapeuta con las específicas del paciente
+    from models import Patient
+    patient = session.get(Patient, context.patient_id)
+    patient_instructions = patient.ai_instructions if patient else ""
+    
+    therapist_instructions = therapist.ai_instructions or ""
+    if patient_instructions:
+        combined_instructions = f"{therapist_instructions}\n\nINSTRUCCIONES PRIORITARIAS PARA ESTE PACIENTE (DE OBLIGADO CUMPLIMIENTO):\n{patient_instructions}"
+    else:
+        combined_instructions = therapist_instructions
+        
     psychologist_id = therapist.id
     patient_id = context.patient_id
     messages = context.messages
@@ -52,7 +63,7 @@ async def get_chat_recommendations_stream(
                 messages,
                 therapist_style=therapist_style,
                 therapist_tone=therapist_tone,
-                therapist_instructions=therapist_instructions
+                therapist_instructions=combined_instructions
             ):
                 if event["type"] == "option":
                     yield f"data: {json.dumps(event)}\n\n"
@@ -67,7 +78,7 @@ async def get_chat_recommendations_stream(
                             psychologist_id=psychologist_id,
                             ai_style_used=therapist_style,
                             ai_tone_used=therapist_tone,
-                            ai_instructions_used=therapist_instructions,
+                            ai_instructions_used=combined_instructions,
                             suggestion_model1=final_options[0] if len(final_options) > 0 else "",
                             suggestion_model2=final_options[1] if len(final_options) > 1 else "",
                             suggestion_model3=final_options[2] if len(final_options) > 2 else "",
@@ -118,18 +129,29 @@ async def get_chat_recommendations(
         if not therapist:
             raise HTTPException(status_code=404, detail="Therapist not found")
 
+        # Fetch patient instructions
+        from models import Patient
+        patient = session.get(Patient, context.patient_id)
+        patient_instructions = patient.ai_instructions if patient else ""
+        
+        therapist_instructions = therapist.ai_instructions or ""
+        if patient_instructions:
+            combined_instructions = f"{therapist_instructions}\n\n### INSTRUCCIONES PRIORITARIAS PARA ESTE PACIENTE (DE OBLIGADO CUMPLIMIENTO):\n{patient_instructions}\n\nIMPORTANTE: Estas instrucciones específicas para este paciente concreto son las más importantes y deben prevalecer sobre cualquier otra instrucción general en caso de conflicto."
+        else:
+            combined_instructions = therapist_instructions
+
         result = await generate_response_options(
             context.messages,
             therapist_style=therapist.ai_style,
             therapist_tone=therapist.ai_tone,
-            therapist_instructions=therapist.ai_instructions
+            therapist_instructions=combined_instructions
         )
         new_ai_log = AISuggestionLog(
             patient_id=context.patient_id,
             psychologist_id=therapist.id,
             ai_style_used=therapist.ai_style,
             ai_tone_used=therapist.ai_tone,
-            ai_instructions_used=therapist.ai_instructions,
+            ai_instructions_used=combined_instructions,
             suggestion_model1=result["options"][0] or "",
             suggestion_model2=result["options"][1] or "",
             suggestion_model3=result["options"][2] or "",

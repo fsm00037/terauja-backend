@@ -217,6 +217,28 @@ def update_clinical_summary(
     log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_CLINICAL_SUMMARY", details={"patient_id": patient_id})
     
     return {"ok": True, "clinical_summary": patient.clinical_summary}
+    
+@router.patch("/patients/{patient_id}/ai-instructions")
+def update_patient_ai_instructions(
+    patient_id: int, 
+    data: dict, 
+    session: Session = Depends(get_session), 
+    current_user: Psychologist = Depends(get_current_user)
+):
+    from auth import verify_patient_access
+    verify_patient_access(patient_id, current_user, session)
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    patient.ai_instructions = data.get("ai_instructions", "")
+    session.add(patient)
+    session.commit()
+    session.refresh(patient)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_PATIENT_AI_INSTRUCTIONS", details={"patient_id": patient_id})
+    
+    return {"ok": True, "ai_instructions": patient.ai_instructions}
 
 @router.get("/patient/me", response_model=PatientRead)
 def get_current_patient_profile(

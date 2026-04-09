@@ -96,6 +96,9 @@ class Patient(SQLModel, table=True):
     # Clinical summary / case description
     clinical_summary: Optional[str] = None
     
+    # Custom AI Instructions for this patient
+    ai_instructions: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     deleted_at: Optional[datetime] = Field(default=None)
 
@@ -130,6 +133,7 @@ class PatientRead(SQLModel):
     psychologist_schedule: Optional[str] = None
     psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
+    ai_instructions: Optional[str] = None
     created_at: datetime
 
 
@@ -145,6 +149,7 @@ class PatientReadWithAssignments(SQLModel):
     psychologist_name: Optional[str] = None
     psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
+    ai_instructions: Optional[str] = None
     unread_messages: int = 0
     unread_questionnaires: int = 0
     assignments: List["AssignmentWithQuestionnaire"] = []
