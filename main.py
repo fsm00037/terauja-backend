@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 from services.scheduler import run_scheduler
-from utils.logger import logger
+from utils.logger import logger, LOGGING_CONFIG
 
 load_dotenv()
 
@@ -136,4 +136,4 @@ if __name__ == "__main__":
     route_paths = [r.path for r in app.routes if hasattr(r, "path")]
     logger.info(f"Registered {len(route_paths)} routes")
     logger.info("Starting Psicouja Backend on http://0.0.0.0:8001")
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True, log_config=LOGGING_CONFIG)

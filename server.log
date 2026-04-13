@@ -250,3 +250,30 @@
 [2026-04-13 11:26:58,287] [INFO] - Starting Psicouja Backend on http://0.0.0.0:8001
 [2026-04-13 11:27:01,107] [INFO] - Firebase Admin SDK initialized successfully
 [2026-04-13 11:27:01,109] [INFO] - Starting background scheduler...
+[2026-04-13 11:40:57,656] [INFO] - Registered 74 routes
+[2026-04-13 11:40:57,657] [INFO] - Starting Psicouja Backend on http://0.0.0.0:8001
+[2026-04-13 11:41:00,436] [INFO] - Firebase Admin SDK initialized successfully
+[2026-04-13 11:41:00,438] [INFO] - Starting background scheduler...
+[2026-04-13 11:41:27,211] [INFO] - Psychologist Login: admin@psicouja.com
+[2026-04-13 11:41:27,230] [SUCCESS] - Audit: LOGIN | PSYCHOLOGIST: John (ID:2) | Details: Successful login
+[2026-04-13 12:09:15,047] [INFO] - Registered 74 routes
+[2026-04-13 12:09:15,049] [INFO] - Starting Psicouja Backend on http://0.0.0.0:8001
+[2026-04-13 12:09:40,108] [INFO] - Registered 74 routes
+[2026-04-13 12:09:40,109] [INFO] - Starting Psicouja Backend on http://0.0.0.0:8001
+[2026-04-13 12:10:45,464] [INFO] - Registered 74 routes
+[2026-04-13 12:10:45,465] [INFO] - Starting Psicouja Backend on http://0.0.0.0:8001
+[2026-04-13 12:13:24] [INFO] - Registered 74 routes
+[2026-04-13 12:13:24] [INFO] - Starting Psicouja Backend on http://0.0.0.0:8001
+[2026-04-13 12:13:24] [INFO] - Will watch for changes in these directories: ['C:\\Users\\fabia\\Documents\\ProyectoPsicologia\\backend']
+[2026-04-13 12:13:24] [INFO] - Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+[2026-04-13 12:13:24] [INFO] - Started reloader process [20564] using StatReload
+[2026-04-13 12:13:27] [INFO] - Started server process [4492]
+[2026-04-13 12:13:27] [INFO] - Waiting for application startup.
+[2026-04-13 12:13:27] [INFO] - Firebase Admin SDK initialized successfully
+[2026-04-13 12:13:27] [INFO] - Starting background scheduler...
+[2026-04-13 12:13:27] [INFO] - Application startup complete.
+[2026-04-13 12:14:02] [INFO] - Shutting down
+[2026-04-13 12:14:02] [INFO] - Waiting for application shutdown.
+[2026-04-13 12:14:02] [INFO] - Application shutdown complete.
+[2026-04-13 12:14:02] [INFO] - Finished server process [4492]
+[2026-04-13 12:14:02] [INFO] - Stopping reloader process [20564]

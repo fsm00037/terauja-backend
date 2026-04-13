@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import sys
 from datetime import datetime
 from colorama import init, Fore, Style
@@ -28,6 +29,10 @@ class CustomFormatter(logging.Formatter):
         
         color = self.LEVEL_COLORS.get(record.levelno, "")
         
+        # Ensure record.message is computed if not already present
+        if not hasattr(record, 'message'):
+            record.message = record.getMessage()
+            
         # Format: [2024-04-09 10:00:00] [INFO] - Message
         return f"{Style.DIM}[{timestamp}]{Style.RESET_ALL} {color}[{level_name:7}]{Style.RESET_ALL} - {record.message}"
 
@@ -41,38 +46,60 @@ def success(self, message, *args, **kws):
 
 logging.Logger.success = success
 
+# Configuration for Uvicorn and Custom Logger
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "custom": {
+            "()": CustomFormatter,
+        },
+        "standard": {
+            "format": "[%(asctime)s] [%(levelname)s] - %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "custom",
+            "stream": "ext://sys.stdout",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "formatter": "standard",
+            "filename": "server.log",
+            "encoding": "utf-8",
+        },
+    },
+    "loggers": {
+        "psicouja": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.access": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
 def setup_logger():
-    # Root logger
-    logger = logging.getLogger("psicouja")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False  # Evitar duplicados si el root logger tiene handlers
-    
-    # Check if we already have a handler to avoid duplicates
-    if not logger.handlers:
-        # Console handler
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(CustomFormatter())
-        logger.addHandler(console_handler)
-        
-        # file handler
-        file_handler = logging.FileHandler("server.log", encoding="utf-8")
-        file_formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
+    # Apply centralized configuration
+    logging.config.dictConfig(LOGGING_CONFIG)
     
     # Silenciar ruidos externos
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     
-    # Configurar logs de Uvicorn para que sigan nuestro formato y vayan al mismo archivo
-    for logger_name in ["uvicorn.access", "uvicorn.error"]:
-        uv_logger = logging.getLogger(logger_name)
-        uv_logger.handlers = logger.handlers
-        uv_logger.setLevel(logging.INFO)
-        uv_logger.propagate = False
-    
-    return logger
-
+    return logging.getLogger("psicouja")
 
 # Singleton instance
 logger = setup_logger()
