@@ -133,11 +133,14 @@ def get_dashboard_stats(
     # Recount active
     pending_count = len([a for a in pending_questionnaires_list if a.status != "completed"])
 
-    # Online Patients Count
-    q_online = select(Patient).where(Patient.is_online == True, Patient.deleted_at == None)
+    # Online Patients Count - Filter using the 120s window logic from the model
+    q_online_base = select(Patient).where(Patient.is_online == True, Patient.deleted_at == None)
     if psychologist_id:
-        q_online = q_online.where(Patient.psychologist_id == psychologist_id)
-    online_patients = session.exec(q_online).all()
+        q_online_base = q_online_base.where(Patient.psychologist_id == psychologist_id)
+    
+    online_patients_candidates = session.exec(q_online_base).all()
+    # Apply the is_active_now property logic (120s check)
+    online_patients = [p for p in online_patients_candidates if p.is_active_now]
 
     # Unread messages count (from patients to psychologist)
     q_unread_messages = select(func.count(Message.id)).join(Patient).where(

@@ -220,14 +220,33 @@ def get_patient_status(
     session: Session = Depends(get_session),
     current_patient: Patient = Depends(get_current_patient)
 ):
+    # --- HEARTBEAT LOGIC START ---
+    now = datetime.now(timezone.utc)
+    delta = 0
+    if current_patient.is_online and current_patient.last_active:
+        last_active = current_patient.last_active
+        if last_active.tzinfo is None:
+            last_active = last_active.replace(tzinfo=timezone.utc)
+        
+        diff = (now - last_active).total_seconds()
+        if diff < 120: 
+            delta = int(diff)
+            
+    current_patient.last_active = now
+    current_patient.is_online = True
+    current_patient.total_online_seconds += delta
+    session.add(current_patient)
+    session.commit()
+    session.refresh(current_patient)
+    # --- HEARTBEAT LOGIC END ---
+
     psychologist_online = False
     if current_patient.psychologist_id:
         psychologist = session.get(Psychologist, current_patient.psychologist_id)
         if psychologist:
-            # Solo llamamos a la propiedad que creamos
             psychologist_online = psychologist.is_active_now
             
-            # Limpieza reactiva opcional: si la propiedad dice False pero la DB dice True
+            # Reactive cleanup for psychologist
             if not psychologist_online and psychologist.is_online:
                 psychologist.is_online = False
                 session.add(psychologist)
