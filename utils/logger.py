@@ -63,9 +63,16 @@ def setup_logger():
     # Silenciar ruidos externos
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    
+    # Configurar logs de Uvicorn para que sigan nuestro formato y vayan al mismo archivo
+    for logger_name in ["uvicorn.access", "uvicorn.error"]:
+        uv_logger = logging.getLogger(logger_name)
+        uv_logger.handlers = logger.handlers
+        uv_logger.setLevel(logging.INFO)
+        uv_logger.propagate = False
     
     return logger
+
 
 # Singleton instance
 logger = setup_logger()
