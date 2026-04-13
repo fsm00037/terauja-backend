@@ -4,7 +4,7 @@ from sqlalchemy import func
 from typing import Optional
 
 from database import get_session
-from models import Patient, Message, Assignment, QuestionnaireCompletion, Questionnaire, Psychologist
+from models import Patient, Message, Assignment, QuestionnaireCompletion, Questionnaire, Psychologist, Session as TherapySession
 from auth import get_current_user
 from utils.assignment_utils import check_and_update_assignment_expiry
 from utils.logger import logger
@@ -47,6 +47,8 @@ def get_dashboard_stats(
     activity_log = []
     
     for msg in recent_messages:
+        if not msg.is_from_patient:
+            continue
         p = session.get(Patient, msg.patient_id)
         if p and p.deleted_at: p = None # Ignore deleted patient snapshot
         p_name = p.patient_code if p else "Unknown"
@@ -54,7 +56,7 @@ def get_dashboard_stats(
             "type": "message",
             "patient": p_name,
             "patient_id": p.id if p else None,
-            "action": "Nuevo mensaje recibido" if msg.is_from_patient else "Nuevo mensaje enviado",
+            "action": "Nuevo mensaje recibido",
             "time": msg.created_at,
             "timestamp": msg.created_at.timestamp()
         })
@@ -148,6 +150,78 @@ def get_dashboard_stats(
     
     unread_messages_count = session.exec(q_unread_messages).one()
 
+    # Open Sessions (Number of chats with messages)
+    q_open_sessions = select(func.count(func.distinct(Message.patient_id))).where(
+        Message.deleted_at == None
+    )
+    if psychologist_id:
+        q_open_sessions = q_open_sessions.join(Patient).where(Patient.psychologist_id == psychologist_id)
+    
+    open_sessions_count = session.exec(q_open_sessions).one()
+
+    # UNANSWERED MESSAGES (Last message in conversation is from patient)
+    # 1. Subquery to find the latest message ID for each patient
+    last_msg_subq = select(
+        Message.patient_id,
+        func.max(Message.id).label("max_id")
+    ).where(Message.deleted_at == None).group_by(Message.patient_id).subquery()
+
+    # 2. Query to get the patients whose latest message is from them
+    q_unanswered_patients = select(Patient).join(
+        Message, Patient.id == Message.patient_id
+    ).join(
+        last_msg_subq, Message.id == last_msg_subq.c.max_id
+    ).where(Message.is_from_patient == True, Patient.deleted_at == None)
+    
+    if psychologist_id:
+        q_unanswered_patients = q_unanswered_patients.where(Patient.psychologist_id == psychologist_id)
+
+    unanswered_patients_list = session.exec(q_unanswered_patients).all()
+    unanswered_messages_count = len(unanswered_patients_list)
+    unanswered_details = [{"id": p.id, "patient_code": p.patient_code} for p in unanswered_patients_list]
+
+    # AI Statistics
+    q_base_psychologist_msgs = select(Message).join(Patient).where(
+        Message.is_from_patient == False,
+        Message.deleted_at == None
+    )
+    if psychologist_id:
+        q_base_psychologist_msgs = q_base_psychologist_msgs.where(Patient.psychologist_id == psychologist_id)
+    
+    live_msgs = session.exec(q_base_psychologist_msgs).all()
+    total_sent_messages = len(live_msgs)
+    
+    ai_generated_count = len([m for m in live_msgs if m.used_ai_suggestion])
+    ai_edited_count = len([m for m in live_msgs if m.used_ai_suggestion and m.was_edited_by_human])
+    ai_original_count = ai_generated_count - ai_edited_count
+    manual_count = total_sent_messages - ai_generated_count
+
+    # --- ADDED: Include stats from Saved Sessions ---
+    q_sessions = select(TherapySession).where(TherapySession.deleted_at == None)
+    if psychologist_id:
+        q_sessions = q_sessions.where(TherapySession.psychologist_id == psychologist_id)
+    
+    all_sessions = session.exec(q_sessions).all()
+    for s in all_sessions:
+        if not s.chat_snapshot:
+            continue
+        for msg in s.chat_snapshot:
+            # Snapshot messages use "sender" key ("therapist" | "patient")
+            if msg.get("sender") == "therapist":
+                total_sent_messages += 1
+                ai_log_id = msg.get("ai_suggestion_log_id")
+                # In some versions it might be "was_edited_by_human"
+                was_edited = msg.get("was_edited_by_human", False)
+                
+                if ai_log_id:
+                    ai_generated_count += 1
+                    if was_edited:
+                        ai_edited_count += 1
+                    else:
+                        ai_original_count += 1
+                else:
+                    manual_count += 1
+
     return {
         "total_patients": len(total_patients),
         "total_messages": len(total_messages),
@@ -156,5 +230,15 @@ def get_dashboard_stats(
         "unread_questionnaires": unread_questionnaires_count,
         "pending_questionnaires": pending_count,
         "recent_activity": final_activity,
-        "online_patients": len(online_patients)
+        "online_patients": len(online_patients),
+        "open_sessions": open_sessions_count,
+        "unanswered_messages": unanswered_messages_count,
+        "unanswered_details": unanswered_details,
+        "ai_stats": {
+            "total_sent": total_sent_messages,
+            "ai_generated": ai_generated_count,
+            "ai_edited": ai_edited_count,
+            "ai_original": ai_original_count,
+            "manual": manual_count
+        }
     }
