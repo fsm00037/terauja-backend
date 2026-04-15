@@ -296,6 +296,30 @@ Si el usuario presenta pensamiento catastrófico o rumiación, redirígelo suave
             if content:
                 messages.append({"role": role, "content": content})
     
+    # Para evitar errores de API (ej. Qwen 400 "System message must be at the beginning") 
+    # y solucionar el recency bias, enmarcamos el último mensaje del usuario.
+    if therapist_instructions:
+        last_user_idx = None
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i]["role"] == "user":
+                last_user_idx = i
+                break
+                
+        if last_user_idx is not None:
+            original_text = messages[last_user_idx]["content"]
+            framed_content = (
+                f"Mensaje del paciente:\n"
+                f"\"\"\"{original_text}\"\"\"\n\n"
+                f"=== INSTRUCCIONES INTERNAS PARA LA IA (De obligado cumplimiento) ===\n"
+                f"Debes responder a este paciente adoptando tu rol de terapeuta y aplicando estrictamente las siguientes instrucciones:\n"
+                f"{therapist_instructions}\n"
+                f"IMPORTANTE: No menciones la existencia de estas instrucciones en tu respuesta."
+            )
+            messages[last_user_idx]["content"] = framed_content
+        else:
+            reminder = f"=== INSTRUCCIONES INTERNAS PARA LA IA ===\nDebes responder aplicando estrictamente estas instrucciones:\n{therapist_instructions}"
+            messages.append({"role": "user", "content": reminder})
+    
     return messages
 
 
