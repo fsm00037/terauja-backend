@@ -297,4 +297,4 @@ def update_patient_code(
     
     log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_PATIENT_CODE", details={"patient_id": patient_id, "new_code": req.new_code})
     
-    return {"ok": True, "patient_code": patient.patient_code}
+    return {"ok": True, "patient_code": patient.patient_code}

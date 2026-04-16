@@ -452,3 +452,76 @@ async def generate_response_options(chat_history, therapist_style=None, therapis
             "options": fallback_messages,
             "raw_options": str(e)
         }
+
+async def generate_strategy_options(chat_history):
+    """
+    Generate quick strategic instruction pills using Gemma based on the conversation history.
+    """
+    system_instruction = (
+        "Analiza el historial de esta conversación terapéutica. "
+        "Como experto supervisor clínico, proporciona EXACTAMENTE 4 opciones de estrategias o instrucciones MUY BREVES (máximo 15 palabras cada una) "
+        "que el psicólogo podría intentar en su siguiente respuesta.\n"
+        "Las opciones deben ser variadas (ej. validar emociones, explorar pensamientos, confrontar amablemente, encuadrar).\n"
+        "RESPONDE ÚNICAMENTE con una lista de viñetas, usando el símbolo '-'. "
+        "NO incluyas introducciones, bienvenidas, ni despedidas. Ejemplo:\n"
+        "- Validar la frustración del paciente ante la sobrecarga laboral.\n"
+        "- Explorar qué pensamientos automáticos preceden a su ansiedad.\n"
+        "- Resumir los puntos clave y preparar el cierre de la sesión.\n"
+        "- Enfocar la atención en sus logros de esta semana."
+    )
+
+    # Re-use _build_messages logic but ignore therapist style/tone to get pure context
+    messages = []
+    messages.append({"role": "system", "content": system_instruction})
+    
+    if isinstance(chat_history, list):
+        for msg in chat_history:
+            original_role = msg.get("role", "user")
+            # Map roles properly
+            role = "user" if original_role in ["user", "patient"] else "assistant"
+            content = msg.get("content", "")
+            if content:
+                messages.append({"role": role, "content": content})
+                
+    # To force Gemma to output the strategies, we append a final instruction message in user role
+    # because Gemma handles instructions better in the user role.
+    messages.append({
+        "role": "user", 
+        "content": "A partir de lo anterior, genera la lista de viñetas con las 4 estrategias. SOLO LA LISTA, NUNCA DES EXPLICACIONES."
+    })
+    
+    safe_messages = clean_messages(messages)
+    safe_messages = truncate_messages(safe_messages)
+    
+    logger.info(f"Generating strategies with Gemma... ({count_tokens(safe_messages)} tokens)")
+    try:
+        raw_output = await _call_gemma(safe_messages)
+        # Parse bullet points
+        strategies = []
+        for line in raw_output.split('\n'):
+            line = line.strip()
+            if line.startswith('- ') or line.startswith('* '):
+                # Remove the bullet
+                strategy = line[2:].strip()
+                if strategy:
+                    strategies.append(strategy)
+        
+        # Fallback if parsing failed
+        if not strategies:
+            logger.warning(f"Failed to parse strategies from Gemma output. Raw: {raw_output}")
+            strategies = [
+                "👋 Saluda de forma cálida al paciente.",
+                "🔍 Haz preguntas abiertas para explorar.",
+                "🤝 Valida las emociones del paciente.",
+                "🛑 Resume lo hablado para el cierre."
+            ]
+            
+        return strategies[:4] # ensure max 4
+    except Exception as e:
+        logger.error(f"Error in generate_strategy_options: {e}")
+        return [
+            "👋 Saluda de forma cálida al paciente.",
+            "🔍 Haz preguntas abiertas para explorar.",
+            "🤝 Valida las emociones del paciente.",
+            "🛑 Resume lo hablado para el cierre."
+        ]

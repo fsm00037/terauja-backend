@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from database import get_session
 from models import Psychologist
 from auth import get_current_user
-from llm_service import generate_response_options, generate_response_options_stream
+from llm_service import generate_response_options, generate_response_options_stream, generate_strategy_options
 from utils.logger import logger
 
 router = APIRouter()
@@ -17,6 +17,7 @@ router = APIRouter()
 class ChatContext(BaseModel):
     messages: List[dict]  # [{"role": "user", "content": "..."}, ...]
     patient_id: int
+    temporary_instructions: str = ""
 
 from models import AISuggestionLog
 
@@ -52,6 +53,9 @@ async def get_chat_recommendations_stream(
         combined_instructions = f"{therapist_instructions}\n\nINSTRUCCIONES PRIORITARIAS PARA ESTE PACIENTE (DE OBLIGADO CUMPLIMIENTO):\n{patient_instructions}"
     else:
         combined_instructions = therapist_instructions
+        
+    if context.temporary_instructions:
+        combined_instructions += f"\n\n=== INSTRUCCIONES ESPECÍFICAS PARA ESTE TURNO (PRIORIDAD MÁXIMA) ===\n{context.temporary_instructions}"
         
     psychologist_id = therapist.id
     patient_id = context.patient_id
@@ -141,6 +145,9 @@ async def get_chat_recommendations(
         else:
             combined_instructions = therapist_instructions
 
+        if context.temporary_instructions:
+            combined_instructions += f"\n\n=== INSTRUCCIONES ESPECÍFICAS PARA ESTE TURNO (PRIORIDAD MÁXIMA) ===\n{context.temporary_instructions}"
+
         result = await generate_response_options(
             context.messages,
             therapist_style=therapist.ai_style,
@@ -172,3 +179,19 @@ async def get_chat_recommendations(
         logger.error(f"Error getting recommendations: {e}")
         session.rollback()
         raise HTTPException(status_code=500, detail="Failed to generate recommendations")
+
+@router.post("/strategies")
+async def get_chat_strategies(
+    context: ChatContext,
+    current_user: Psychologist = Depends(get_current_user)
+):
+    """
+    Endpoint para generar estrategias dinámicas según el contexto de la conversación.
+    """
+    logger.info(f"Generating dynamic strategies: Psych {current_user.id} -> Patient {context.patient_id}")
+    try:
+        strategies = await generate_strategy_options(context.messages)
+        return {"strategies": strategies}
+    except Exception as e:
+        logger.error(f"Error generating strategies: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate strategies")
