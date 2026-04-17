@@ -298,3 +298,161 @@ def update_patient_code(
     log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_PATIENT_CODE", details={"patient_id": patient_id, "new_code": req.new_code})
     
     return {"ok": True, "patient_code": patient.patient_code}
+
+
+# ============================================================================
+# IA PATIENT ENDPOINTS
+# ============================================================================
+
+class IaPromptRequest(BaseModel):
+    ia_patient_prompt: str
+
+@router.post("/patients/ensure-ia-patient")
+def ensure_ia_patient(
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    """Create or return the IA patient for the current psychologist."""
+    # Check if IA patient already exists for this psychologist
+    existing = session.exec(
+        select(Patient).where(
+            Patient.psychologist_id == current_user.id,
+            Patient.is_ia_patient == True,
+            Patient.deleted_at == None
+        )
+    ).first()
+    
+    if existing:
+        return {
+            "id": existing.id,
+            "patient_code": existing.patient_code,
+            "access_code": existing.access_code,
+            "psychologist_id": existing.psychologist_id,
+            "psychologist_name": existing.psychologist_name,
+            "is_ia_patient": True,
+            "ia_patient_prompt": existing.ia_patient_prompt,
+            "created_at": existing.created_at,
+            "created": False
+        }
+    
+    # Create new IA patient
+    ia_patient = Patient(
+        patient_code=f"IA-{current_user.id}",
+        access_code=generate_access_code(),
+        psychologist_id=current_user.id,
+        psychologist_name=current_user.name,
+        psychologist_schedule=current_user.schedule,
+        psychologist_photo=current_user.photo_url,
+        is_ia_patient=True,
+        ia_patient_prompt=(
+            "Eres María, una paciente ficticia de 28 años con ansiedad generalizada. "
+            "Trabajas como diseñadora gráfica freelance. Tienes dificultades para dormir, "
+            "pensamientos catastrofistas recurrentes y tiendes a evitar situaciones sociales. "
+            "Eres inteligente y reflexiva pero te cuesta poner en práctica los consejos. "
+            "Hablas de forma natural, a veces con dudas, y puedes mostrar resistencia al cambio. "
+            "No seas demasiado complaciente: muestra emociones reales, frustraciones y a veces desacuerdo."
+        )
+    )
+    
+    session.add(ia_patient)
+    session.commit()
+    session.refresh(ia_patient)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "CREATE_IA_PATIENT", details={"patient_id": ia_patient.id})
+    
+    return {
+        "id": ia_patient.id,
+        "patient_code": ia_patient.patient_code,
+        "access_code": ia_patient.access_code,
+        "psychologist_id": ia_patient.psychologist_id,
+        "psychologist_name": ia_patient.psychologist_name,
+        "is_ia_patient": True,
+        "ia_patient_prompt": ia_patient.ia_patient_prompt,
+        "created_at": ia_patient.created_at,
+        "created": True
+    }
+
+
+@router.post("/patients/{patient_id}/reset-ia")
+def reset_ia_patient(
+    patient_id: int,
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    """Hard-delete all data associated with an IA patient (messages, sessions, notes, stats) while keeping the patient record."""
+    from auth import verify_patient_access
+    verify_patient_access(patient_id, current_user, session)
+    
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    if not patient.is_ia_patient:
+        raise HTTPException(status_code=400, detail="Only IA patients can be reset")
+    
+    from models import Assignment, QuestionnaireCompletion, Session as TherapySession, Note, Message, AssessmentStat, AISuggestionLog
+    
+    # Hard delete messages
+    messages = session.exec(select(Message).where(Message.patient_id == patient_id)).all()
+    for m in messages:
+        session.delete(m)
+    
+    # Hard delete AI suggestion logs
+    ai_logs = session.exec(select(AISuggestionLog).where(AISuggestionLog.patient_id == patient_id)).all()
+    for al in ai_logs:
+        session.delete(al)
+    
+    # Hard delete sessions
+    sessions_list = session.exec(select(TherapySession).where(TherapySession.patient_id == patient_id)).all()
+    for s in sessions_list:
+        session.delete(s)
+    
+    # Hard delete notes
+    notes = session.exec(select(Note).where(Note.patient_id == patient_id)).all()
+    for n in notes:
+        session.delete(n)
+    
+    # Hard delete assessment stats
+    stats = session.exec(select(AssessmentStat).where(AssessmentStat.patient_id == patient_id)).all()
+    for st in stats:
+        session.delete(st)
+    
+    # Hard delete assignments and completions
+    assignments = session.exec(select(Assignment).where(Assignment.patient_id == patient_id)).all()
+    for a in assignments:
+        completions = session.exec(select(QuestionnaireCompletion).where(QuestionnaireCompletion.assignment_id == a.id)).all()
+        for c in completions:
+            session.delete(c)
+        session.delete(a)
+    
+    session.commit()
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "RESET_IA_PATIENT", details={"patient_id": patient_id})
+    
+    return {"ok": True, "message": "IA patient data reset successfully"}
+
+
+@router.patch("/patients/{patient_id}/ia-prompt")
+def update_ia_patient_prompt(
+    patient_id: int,
+    data: IaPromptRequest,
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    """Update the personality prompt for an IA patient."""
+    from auth import verify_patient_access
+    verify_patient_access(patient_id, current_user, session)
+    
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    if not patient.is_ia_patient:
+        raise HTTPException(status_code=400, detail="Only IA patients have personality prompts")
+    
+    patient.ia_patient_prompt = data.ia_patient_prompt
+    session.add(patient)
+    session.commit()
+    session.refresh(patient)
+    
+    log_action(session, current_user.id, "psychologist", current_user.name, "UPDATE_IA_PROMPT", details={"patient_id": patient_id})
+    
+    return {"ok": True, "ia_patient_prompt": patient.ia_patient_prompt}

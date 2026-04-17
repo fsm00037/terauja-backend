@@ -195,3 +195,78 @@ async def get_chat_strategies(
     except Exception as e:
         logger.error(f"Error generating strategies: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate strategies")
+
+
+class IaPatientRespondRequest(BaseModel):
+    patient_id: int
+
+@router.post("/ia-patient/respond")
+async def ia_patient_respond(
+    req: IaPatientRespondRequest,
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    """
+    Generate a response from the fictional IA patient using Gemma.
+    Fetches the chat history, generates a patient response, and saves it as a message.
+    """
+    from models import Patient, Message
+    from auth import verify_patient_access
+    from llm_service import generate_ia_patient_response
+    
+    verify_patient_access(req.patient_id, current_user, session)
+    
+    patient = session.get(Patient, req.patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    if not patient.is_ia_patient:
+        raise HTTPException(status_code=400, detail="This endpoint is only for IA patients")
+    
+    # Fetch recent messages for context
+    from sqlmodel import select
+    messages_db = session.exec(
+        select(Message).where(
+            Message.patient_id == req.patient_id,
+            Message.psychologist_id == current_user.id,
+            Message.deleted_at == None
+        ).order_by(Message.created_at)
+    ).all()
+    
+    # Convert to chat format
+    chat_history = []
+    for m in messages_db:
+        role = "user" if m.is_from_patient else "assistant"
+        chat_history.append({"role": role, "content": m.content})
+    
+    logger.info(f"IA Patient respond: Psych {current_user.id} -> Patient {req.patient_id} ({len(chat_history)} messages)")
+    
+    # Generate response using Gemma
+    response_text = await generate_ia_patient_response(
+        chat_history,
+        patient_personality_prompt=patient.ia_patient_prompt
+    )
+    
+    # Save as a message from the patient
+    new_message = Message(
+        content=response_text,
+        patient_id=req.patient_id,
+        psychologist_id=current_user.id,
+        is_from_patient=True,
+        read=False
+    )
+    session.add(new_message)
+    session.commit()
+    session.refresh(new_message)
+    
+    logger.info(f"IA Patient message saved: ID {new_message.id}")
+    
+    return {
+        "id": new_message.id,
+        "patient_id": new_message.patient_id,
+        "content": new_message.content,
+        "is_from_patient": True,
+        "read": False,
+        "created_at": str(new_message.created_at),
+        "was_edited_by_human": False,
+        "ai_suggestion_log_id": None
+    }

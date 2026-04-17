@@ -525,3 +525,72 @@ async def generate_strategy_options(chat_history):
             "🤝 Valida las emociones del paciente.",
             "🛑 Resume lo hablado para el cierre."
         ]
+
+
+async def generate_ia_patient_response(chat_history, patient_personality_prompt=None):
+    """
+    Generate a response as a fictional patient using Gemma.
+    The roles are inverted: therapist messages become 'user' and patient messages become 'assistant',
+    so Gemma generates the next 'patient' utterance.
+    """
+    default_personality = (
+        "Eres María, una paciente ficticia de 28 años con ansiedad generalizada. "
+        "Trabajas como diseñadora gráfica freelance. Tienes dificultades para dormir, "
+        "pensamientos catastrofistas recurrentes y tiendes a evitar situaciones sociales. "
+        "Eres inteligente y reflexiva pero te cuesta poner en práctica los consejos. "
+        "Hablas de forma natural, a veces con dudas, y puedes mostrar resistencia al cambio. "
+        "No seas demasiado complaciente: muestra emociones reales, frustraciones y a veces desacuerdo."
+    )
+
+    personality = patient_personality_prompt.strip() if patient_personality_prompt and patient_personality_prompt.strip() else default_personality
+
+    system_message = (
+        f"Estas en una sesion de chat por mensajes de texto de terapia en una plataforma online con un psicologo."
+        f"Debes ser sincero y natural\n\n"
+        f"Tu personalidad:\n{personality}\n\n"
+        f"INSTRUCCIONES:\n"
+        f"- Responde SOLO como paciente, en primera persona.\n"
+        f"- NO escribas pensamientos,acotaciones,ni nada que no sea lo que quieres escribir\n"
+        f"- Sé natural y realista. Puedes ser breve o extenso según el contexto. teniendo en cuenta que usarás un chat por mensajes de texto.\n"
+        f"- Si el terapeuta te saluda, responde con naturalidad.\n"
+        f"- NO uses prefijos como 'Paciente:' ni 'Respuesta:'.\n"
+        f"- Responde en español."
+    )
+
+    # Build messages with INVERTED roles:
+    # Therapist (assistant in original) -> user (so Gemma sees therapist as the one talking TO the patient)
+    # Patient (user in original) -> assistant (so Gemma continues as the patient)
+    messages = [{"role": "system", "content": system_message}]
+
+    if isinstance(chat_history, list):
+        for msg in chat_history:
+            original_role = msg.get("role", "user")
+            # In the original chat: user=patient, assistant=therapist
+            # We invert: therapist messages -> user, patient messages -> assistant
+            if original_role in ["assistant", "therapist"]:
+                role = "user"  # Therapist talking to patient -> Gemma sees as input
+            elif original_role in ["user", "patient"]:
+                role = "assistant"  # Patient responses -> Gemma continues as patient
+            else:
+                role = original_role
+            content = msg.get("content", "")
+            if content:
+                messages.append({"role": role, "content": content})
+
+    safe_messages = clean_messages(messages)
+    safe_messages = truncate_messages(safe_messages)
+
+    logger.info(f"Generating IA patient response with Gemma ({count_tokens(safe_messages)} tokens)")
+
+    try:
+        raw_output = await _call_gemma(safe_messages)
+        cleaned = clean_response(raw_output) if raw_output else ""
+
+        if not cleaned or len(cleaned) < 3:
+            cleaned = "No sé qué decir ahora mismo... necesito un momento para pensar."
+
+        logger.info(f"IA Patient response generated: {cleaned[:100]}...")
+        return cleaned
+    except Exception as e:
+        logger.error(f"Error in generate_ia_patient_response: {e}")
+        return "Perdona, me he quedado en blanco... ¿puedes repetir?"

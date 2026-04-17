@@ -99,6 +99,10 @@ class Patient(SQLModel, table=True):
     # Custom AI Instructions for this patient
     ai_instructions: Optional[str] = None
     
+    # IA Patient (fictional patient simulated by LLM)
+    is_ia_patient: bool = Field(default=False)
+    ia_patient_prompt: Optional[str] = Field(default=None)
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     deleted_at: Optional[datetime] = Field(default=None)
 
@@ -134,6 +138,8 @@ class PatientRead(SQLModel):
     psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
     ai_instructions: Optional[str] = None
+    is_ia_patient: bool = False
+    ia_patient_prompt: Optional[str] = None
     created_at: datetime
 
 
@@ -150,6 +156,8 @@ class PatientReadWithAssignments(SQLModel):
     psychologist_photo: Optional[str] = None
     clinical_summary: Optional[str] = None
     ai_instructions: Optional[str] = None
+    is_ia_patient: bool = False
+    ia_patient_prompt: Optional[str] = None
     unread_messages: int = 0
     unread_questionnaires: int = 0
     assignments: List["AssignmentWithQuestionnaire"] = []
@@ -445,4 +453,5 @@ class FCMToken(SQLModel, table=True):
     patient_id: int = Field(foreign_key="patient.id", index=True)
     token: str = Field(unique=True, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
