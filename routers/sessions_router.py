@@ -120,3 +120,28 @@ def delete_session(
     )
     
     return {"ok": True}
+
+@router.post("/{session_id}/regenerate-summary")
+def regenerate_session_summary_endpoint(
+    session_id: int,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    db_session = session.get(TherapySession, session_id)
+    if not db_session or db_session.deleted_at:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    verify_patient_access(db_session.patient_id, current_user, session)
+    
+    if not db_session.chat_snapshot:
+        raise HTTPException(status_code=400, detail="No chat history available for this session")
+    
+    # Clear current summary so frontend can show loading state
+    db_session.ai_summary = None
+    session.add(db_session)
+    session.commit()
+    
+    background_tasks.add_task(background_generate_session_summary, session_id, db_session.chat_snapshot)
+    
+    return {"ok": True}
