@@ -1,18 +1,35 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlmodel import Session, select
 from typing import List
 
-from database import get_session
+from database import get_session, engine
 from models import Session as TherapySession, SessionRead, SessionUpdate, Psychologist
 from auth import get_current_user, verify_patient_access
 from logging_utils import log_action
 from utils.logger import logger
+from llm_service import generate_session_summary
+import asyncio
 
 router = APIRouter()
+
+async def background_generate_session_summary(session_id: int, chat_snapshot: list):
+    try:
+        summary = await generate_session_summary(chat_snapshot)
+        with Session(engine) as db:
+            db_session = db.get(TherapySession, session_id)
+            if db_session:
+                db_session.ai_summary = summary
+                db.add(db_session)
+                db.commit()
+                logger.info(f"AI summary saved for session {session_id}")
+    except Exception as e:
+        logger.error(f"Failed to generate summary for session {session_id}: {e}")
+
 
 @router.post("", response_model=SessionRead)
 def create_session(
     session_data: TherapySession, 
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session), 
     current_user: Psychologist = Depends(get_current_user)
 ):
@@ -24,6 +41,10 @@ def create_session(
     session.add(session_data)
     session.commit()
     session.refresh(session_data)
+    
+    if session_data.chat_snapshot:
+        background_tasks.add_task(background_generate_session_summary, session_data.id, session_data.chat_snapshot)
+
     
     log_action(
         session, current_user.id, "psychologist", current_user.name, 

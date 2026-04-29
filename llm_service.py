@@ -594,3 +594,62 @@ async def generate_ia_patient_response(chat_history, patient_personality_prompt=
     except Exception as e:
         logger.error(f"Error in generate_ia_patient_response: {e}")
         return "Perdona, me he quedado en blanco... ¿puedes repetir?"
+
+async def generate_session_summary(chat_history):
+    """
+    Generate an objective, brief summary of a session using Gemma based on the conversation history.
+    """
+    system_instruction = (
+        "Analiza el historial de esta conversación terapéutica y genera un resumen esquemático, breve y objetivo. "
+        "Escribe directamente el resumen, sin introducciones ni decoraciones. "
+        "No utilices asteriscos (*) ni símbolos de formato markdown. "
+        "Utiliza guiones (-) para los puntos clave. "
+        "Céntrate exclusivamente en el contenido hablado con el paciente. "
+        "No asumas, no analices, no des opiniones. Solo describe los hechos y temas tratados de forma clara."
+    )
+
+    messages = [{"role": "system", "content": system_instruction}]
+    
+    if isinstance(chat_history, list):
+        for msg in chat_history:
+            original_role = msg.get("role", "user")
+            if original_role in ["user", "patient", "paciente"]:
+                role = "user"
+            elif original_role in ["assistant", "therapist", "psicologo"]:
+                role = "assistant"
+            else:
+                role = original_role
+            
+            content = msg.get("content", msg.get("text", ""))
+            if content:
+                messages.append({"role": role, "content": content})
+                
+    messages.append({
+        "role": "user", 
+        "content": "A partir de lo anterior, genera el resumen objetivo y breve de la sesión."
+    })
+    
+    safe_messages = clean_messages(messages)
+    safe_messages = truncate_messages(safe_messages)
+    
+    logger.info(f"Generating session summary with Gemma... ({count_tokens(safe_messages)} tokens)")
+    try:
+        raw_output = await _call_gemma(safe_messages)
+        # Limpieza básica preservando saltos de línea y viñetas para el resumen
+        cleaned = raw_output.strip() if raw_output else ""
+        if "<thinking>" in cleaned:
+            import re
+            cleaned = re.sub(r'<thinking>.*?</thinking>', '', cleaned, flags=re.DOTALL).strip()
+            
+        # Remover prefijos innecesarios que a veces añade el modelo
+        for prefix in ["Resumen:", "Resumen de la sesión:", "- Resumen:"]:
+            if cleaned.startswith(prefix):
+                cleaned = cleaned[len(prefix):].strip()
+
+        if not cleaned:
+             return "No se pudo generar el resumen de la sesión."
+        return cleaned
+    except Exception as e:
+        logger.error(f"Error in generate_session_summary: {e}")
+        return "Error al generar el resumen de la sesión."
+

@@ -268,6 +268,7 @@ class Session(SQLModel, table=True):
     duration: str = "0 min"
     description: str = ""
     notes: str = ""
+    ai_summary: Optional[str] = None
     chat_snapshot: Optional[List[Dict[str, Any]]] = Field(
         default=None, 
         sa_column=Column(MutableList.as_mutable(JSON)) 
@@ -284,6 +285,7 @@ class SessionRead(SQLModel):
     duration: str
     description: str
     notes: str
+    ai_summary: Optional[str] = None
     chat_snapshot: Optional[List[Dict[str, Any]]] = Field(
         default=None, 
         sa_column=Column(MutableList.as_mutable(JSON)) 
@@ -295,6 +297,7 @@ class SessionUpdate(SQLModel):
     duration: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
+    ai_summary: Optional[str] = None
     chat_snapshot: Optional[List[Dict[str, Any]]] = Field(
         default=None, 
         sa_column=Column(MutableList.as_mutable(JSON)) 
