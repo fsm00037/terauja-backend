@@ -18,6 +18,7 @@ class ChatContext(BaseModel):
     messages: List[dict]  # [{"role": "user", "content": "..."}, ...]
     patient_id: int
     temporary_instructions: str = ""
+    previous_session_summary: str = ""
 
 from models import AISuggestionLog
 
@@ -56,6 +57,9 @@ async def get_chat_recommendations_stream(
         
     if context.temporary_instructions:
         combined_instructions += f"\n\n=== INSTRUCCIONES ESPECÍFICAS PARA ESTE TURNO (PRIORIDAD MÁXIMA) ===\n{context.temporary_instructions}"
+        
+    if context.previous_session_summary:
+        combined_instructions += f"\n\n=== RESUMEN DE LA SESIÓN ANTERIOR (CONTEXTO) ===\n{context.previous_session_summary}"
         
     psychologist_id = therapist.id
     patient_id = context.patient_id
@@ -148,6 +152,9 @@ async def get_chat_recommendations(
         if context.temporary_instructions:
             combined_instructions += f"\n\n=== INSTRUCCIONES ESPECÍFICAS PARA ESTE TURNO (PRIORIDAD MÁXIMA) ===\n{context.temporary_instructions}"
 
+        if context.previous_session_summary:
+            combined_instructions += f"\n\n=== RESUMEN DE LA SESIÓN ANTERIOR (CONTEXTO) ===\n{context.previous_session_summary}"
+
         result = await generate_response_options(
             context.messages,
             therapist_style=therapist.ai_style,
@@ -190,7 +197,7 @@ async def get_chat_strategies(
     """
     logger.info(f"Generating dynamic strategies: Psych {current_user.id} -> Patient {context.patient_id}")
     try:
-        strategies = await generate_strategy_options(context.messages)
+        strategies = await generate_strategy_options(context.messages, context.previous_session_summary)
         return {"strategies": strategies}
     except Exception as e:
         logger.error(f"Error generating strategies: {e}")

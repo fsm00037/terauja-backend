@@ -453,7 +453,7 @@ async def generate_response_options(chat_history, therapist_style=None, therapis
             "raw_options": str(e)
         }
 
-async def generate_strategy_options(chat_history):
+async def generate_strategy_options(chat_history, previous_session_summary=None):
     """
     Generate quick strategic instruction pills using Gemma based on the conversation history.
     """
@@ -461,7 +461,14 @@ async def generate_strategy_options(chat_history):
         "Analiza el historial de esta conversación terapéutica. "
         "Como experto supervisor clínico, proporciona EXACTAMENTE 4 opciones de estrategias o instrucciones MUY BREVES (máximo 15 palabras cada una) "
         "que el psicólogo podría intentar en su siguiente respuesta.\n"
-        "Las opciones deben ser variadas (ej. validar emociones, explorar pensamientos, confrontar amablemente, encuadrar).\n"
+        "REGLA ESPECIAL: Si es el INICIO de la sesión y el paciente solo ha saludado, incluye SIEMPRE una opción estratégica para interesarse por su estado general, su día o cómo le ha ido desde la última vez.\n"
+    )
+
+    if previous_session_summary:
+        system_instruction += f"\nRESUMEN DE LA SESIÓN ANTERIOR (Contexto importante):\n{previous_session_summary}\n"
+
+    system_instruction += (
+        "\nLas opciones deben ser variadas (ej. validar emociones, explorar pensamientos, confrontar amablemente, encuadrar).\n"
         "RESPONDE ÚNICAMENTE con una lista de viñetas, usando el símbolo '-'. "
         "NO incluyas introducciones, bienvenidas, ni despedidas. Ejemplo:\n"
         "- Validar la frustración del paciente ante la sobrecarga laboral.\n"
