@@ -9,14 +9,19 @@ venv
 
 .env
 
-audit.log
+*.log
+**/*.log
 
-llm_activity.log
 
-__pycache__
 
-utils/__pycache__
+
+**/__pycache__/
+**/_pycache/
+
+
+
 
 psicouja-b1ef9-firebase-adminsdk-fbsvc-cd3f93d439.json
 
-routers/__pycache__
+
+cache/
