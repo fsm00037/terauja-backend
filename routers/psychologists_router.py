@@ -87,6 +87,8 @@ def update_user_profile(user_id: int, profile_data: PsychologistUpdate, session:
     if profile_data.ai_style is not None: user.ai_style = profile_data.ai_style
     if profile_data.ai_tone is not None: user.ai_tone = profile_data.ai_tone
     if profile_data.ai_instructions is not None: user.ai_instructions = profile_data.ai_instructions
+    if profile_data.gender is not None: user.gender = profile_data.gender
+    if profile_data.therapy_style is not None: user.therapy_style = profile_data.therapy_style
         
     session.add(user)
     

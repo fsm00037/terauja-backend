@@ -26,6 +26,9 @@ class Psychologist(SQLModel, table=True):
     ai_tone: Optional[str] = Field(default=None)
     ai_instructions: Optional[str] = Field(default=None)
     
+    gender: Optional[str] = Field(default=None)
+    therapy_style: Optional[str] = Field(default=None)
+    
     patients: List["Patient"] = Relationship(back_populates="psychologist")
 
     @property
@@ -57,6 +60,8 @@ class PsychologistRead(SQLModel):
     ai_style: Optional[str] = None
     ai_tone: Optional[str] = None
     ai_instructions: Optional[str] = None
+    gender: Optional[str] = None
+    therapy_style: Optional[str] = None
 
 
 class PsychologistUpdate(SQLModel):
@@ -67,6 +72,8 @@ class PsychologistUpdate(SQLModel):
     ai_style: Optional[str] = None
     ai_tone: Optional[str] = None
     ai_instructions: Optional[str] = None
+    gender: Optional[str] = None
+    therapy_style: Optional[str] = None
 
 
 # ============================================================================
