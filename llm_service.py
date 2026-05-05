@@ -107,22 +107,40 @@ def clean_messages(messages):
     return cleaned
 
 
-async def _call_llama(messages):
-    """Llama al modelo Llama de forma asíncrona."""
+# async def _call_llama(messages):
+#     """Llama al modelo Llama de forma asíncrona."""
+#     url_prefix = os.getenv("URL_MODELS_PSICOUJA", "")
+#     try:
+#         logger.info("Calling Llama model...")
+#         response = await client.chat.completions.create(
+#             model=url_prefix + "meta-llama/Llama-3.1-8B-Instruct",
+#             messages=messages,
+#             max_tokens=256,
+#             temperature=0.7
+#         )
+#         content = response.choices[0].message.content.strip()
+#         logger.info("Llama call successful.")
+#         return content
+#     except Exception as ex:
+#         logger.error(f"Error calling Llama: {ex}")
+#         return str(ex)
+
+async def _call_psicoujamodel(messages):
+    """Llama al modelo PsicoujaModel de forma asíncrona."""
     url_prefix = os.getenv("URL_MODELS_PSICOUJA", "")
     try:
-        logger.info("Calling Llama model...")
+        logger.info("Calling PsicoujaModel...")
         response = await client.chat.completions.create(
-            model=url_prefix + "meta-llama/Llama-3.1-8B-Instruct",
+            model="ALIA-psicouja_model",
             messages=messages,
             max_tokens=256,
             temperature=0.7
         )
         content = response.choices[0].message.content.strip()
-        logger.info("Llama call successful.")
+        logger.info("PsicoujaModel call successful.")
         return content
     except Exception as ex:
-        logger.error(f"Error calling Llama: {ex}")
+        logger.error(f"Error calling PsicoujaModel: {ex}")
         return str(ex)
 
 
@@ -362,7 +380,7 @@ async def generate_response_options_stream(chat_history, therapist_style=None, t
 
     # Lanzar las 3 tareas en paralelo
     tasks = [
-        asyncio.create_task(_run_and_enqueue(0, _call_llama(safe_messages))),
+        asyncio.create_task(_run_and_enqueue(0, _call_psicoujamodel(safe_messages))),
         asyncio.create_task(_run_and_enqueue(1, _call_qwen(safe_messages))),
         asyncio.create_task(_run_and_enqueue(2, _call_gemma(safe_messages))),
     ]
@@ -415,7 +433,7 @@ async def generate_response_options(chat_history, therapist_style=None, therapis
     try:
         # Llamadas paralelas con asyncio.gather
         content_model1, content_model2, content_model3 = await asyncio.gather(
-            _call_llama(safe_messages),
+            _call_psicoujamodel(safe_messages),
             _call_qwen(safe_messages),
             _call_gemma(safe_messages),
             return_exceptions=True
