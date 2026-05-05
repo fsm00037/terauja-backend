@@ -29,6 +29,29 @@ def generate_access_code():
 def generate_patient_code():
     return "P-" + secrets.token_hex(2).upper()
 
+class ClinicalLogUpdateRequest(BaseModel):
+    clinical_log: str
+
+@router.patch("/patients/{patient_id}/clinical-log")
+def update_clinical_log(
+    patient_id: int,
+    data: ClinicalLogUpdateRequest,
+    session: Session = Depends(get_session),
+    current_user: Psychologist = Depends(get_current_user)
+):
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Verify access
+    if current_user.role != "admin" and patient.psychologist_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    patient.clinical_log = data.clinical_log
+    session.add(patient)
+    session.commit()
+    return {"ok": True}
+
 @router.post("/patients")
 def create_patient(patient: Patient, session: Session = Depends(get_session), current_user: Psychologist = Depends(get_current_user)):
     # If not admin and no psychologist_id provided, assign to current user
@@ -63,7 +86,8 @@ def create_patient(patient: Patient, session: Session = Depends(get_session), cu
         "psychologist_name": patient.psychologist_name,
         "psychologist_schedule": patient.psychologist_schedule,
         "created_at": patient.created_at,
-        "clinical_summary": patient.clinical_summary
+        "clinical_summary": patient.clinical_summary,
+        "clinical_log": patient.clinical_log
     }
 
 @router.get("/patients", response_model=List[PatientReadWithAssignments])
@@ -332,6 +356,7 @@ def ensure_ia_patient(
             "is_ia_patient": True,
             "ia_patient_prompt": existing.ia_patient_prompt,
             "created_at": existing.created_at,
+            "clinical_log": existing.clinical_log,
             "created": False
         }
     
@@ -369,6 +394,7 @@ def ensure_ia_patient(
         "is_ia_patient": True,
         "ia_patient_prompt": ia_patient.ia_patient_prompt,
         "created_at": ia_patient.created_at,
+        "clinical_log": ia_patient.clinical_log,
         "created": True
     }
 
@@ -423,6 +449,10 @@ def reset_ia_patient(
         for c in completions:
             session.delete(c)
         session.delete(a)
+    
+    # Reset patient logs (Bitácora)
+    patient.clinical_log = None
+    session.add(patient)
     
     session.commit()
     

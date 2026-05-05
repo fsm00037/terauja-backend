@@ -660,3 +660,42 @@ async def generate_session_summary(chat_history):
         logger.error(f"Error in generate_session_summary: {e}")
         return "Error al generar el resumen de la sesión."
 
+async def generate_bitacora_summary(session_title, session_notes, ai_summary):
+    """
+    Generates a brief summary for the clinical log (bitácora) combining the session title,
+    therapist notes, and the AI generated summary.
+    """
+    system_instruction = (
+        "Eres un asistente clínico experto. Tu tarea es generar una entrada breve para una bitácora clínica "
+        "basándote en tres fuentes de información: el título de la sesión, las notas del terapeuta y un resumen generado por IA. "
+        "Debes sintetizar esta información de forma MUY breve y profesional (máximo 4 líneas). "
+        "No uses introducciones, ve directo al grano. No uses asteriscos ni formato markdown complejo."
+    )
+
+    prompt = (
+        f"Título de la sesión: {session_title}\n"
+        f"Notas del terapeuta: {session_notes}\n"
+        f"Resumen IA previo: {ai_summary}\n\n"
+        "Genera la entrada breve para la bitácora:"
+    )
+
+    messages = [
+        {"role": "system", "content": system_instruction},
+        {"role": "user", "content": prompt}
+    ]
+
+    logger.info("Generating bitacora summary with Gemma...")
+    try:
+        raw_output = await _call_gemma(messages)
+        # Limpieza básica
+        cleaned = raw_output.strip() if raw_output else ""
+        if "<thinking>" in cleaned:
+            import re
+            cleaned = re.sub(r'<thinking>.*?</thinking>', '', cleaned, flags=re.DOTALL).strip()
+        
+        if not cleaned:
+            return "Sin detalles adicionales para la bitácora."
+        return cleaned
+    except Exception as e:
+        logger.error(f"Error in generate_bitacora_summary: {e}")
+        return "Error al generar la entrada de la bitácora."
