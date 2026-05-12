@@ -21,23 +21,23 @@ def get_dashboard_stats(
     if current_user.role != "admin":
         psychologist_id = current_user.id
     
-    # Base queries - Filtering deleted_at == None
-    q_patients = select(Patient).where(Patient.deleted_at == None)
-    q_messages = select(Message).where(Message.deleted_at == None)
-    q_recent_msgs = select(Message).where(Message.deleted_at == None).order_by(Message.created_at.desc()).limit(5)
-    q_recent_assigns = select(Assignment).where(Assignment.deleted_at == None).order_by(Assignment.assigned_at.desc()).limit(5)
+    # Base queries - Filtering deleted_at == None and excluding IA patient (is_ia_patient != True)
+    q_patients = select(Patient).where(Patient.deleted_at == None, Patient.is_ia_patient != True)
+    q_messages = select(Message).join(Patient).where(Message.deleted_at == None, Patient.is_ia_patient != True)
+    q_recent_msgs = select(Message).join(Patient).where(
+        Message.deleted_at == None,
+        Patient.is_ia_patient != True
+    ).order_by(Message.created_at.desc()).limit(5)
+    q_recent_assigns = select(Assignment).join(Patient).where(
+        Assignment.deleted_at == None,
+        Patient.is_ia_patient != True
+    ).order_by(Assignment.assigned_at.desc()).limit(5)
     
     if psychologist_id:
         q_patients = q_patients.where(Patient.psychologist_id == psychologist_id)
-        q_messages = select(Message).join(Patient).where(Patient.psychologist_id == psychologist_id, Message.deleted_at == None)
-        q_recent_msgs = select(Message).join(Patient).where(
-            Patient.psychologist_id == psychologist_id,
-            Message.deleted_at == None
-        ).order_by(Message.created_at.desc()).limit(5)
-        q_recent_assigns = select(Assignment).join(Patient).where(
-            Patient.psychologist_id == psychologist_id,
-            Assignment.deleted_at == None
-        ).order_by(Assignment.assigned_at.desc()).limit(5)
+        q_messages = q_messages.where(Patient.psychologist_id == psychologist_id)
+        q_recent_msgs = q_recent_msgs.where(Patient.psychologist_id == psychologist_id)
+        q_recent_assigns = q_recent_assigns.where(Patient.psychologist_id == psychologist_id)
     
     total_patients = session.exec(q_patients).all()
     total_messages = session.exec(q_messages).all()
@@ -88,35 +88,32 @@ def get_dashboard_stats(
     activity_log.sort(key=lambda x: x["timestamp"], reverse=True)
     final_activity = activity_log[:10]
     
-    q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).where(
+    q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
+        Patient, QuestionnaireCompletion.patient_id == Patient.id
+    ).where(
         QuestionnaireCompletion.status == "completed",
-        QuestionnaireCompletion.deleted_at == None
+        QuestionnaireCompletion.deleted_at == None,
+        Patient.is_ia_patient != True
     )
-    q_pending_questionnaires = select(Assignment).where(Assignment.status != "completed", Assignment.deleted_at == None)
+    q_pending_questionnaires = select(Assignment).join(Patient).where(
+        Assignment.status != "completed",
+        Assignment.deleted_at == None,
+        Patient.is_ia_patient != True
+    )
     
-    q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).where(
+    q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
+        Patient, QuestionnaireCompletion.patient_id == Patient.id
+    ).where(
         QuestionnaireCompletion.status == "completed",
         QuestionnaireCompletion.read_by_therapist == False,
-        QuestionnaireCompletion.deleted_at == None
+        QuestionnaireCompletion.deleted_at == None,
+        Patient.is_ia_patient != True
     )
     
     if psychologist_id:
-        q_completed_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
-            Patient, QuestionnaireCompletion.patient_id == Patient.id
-        ).where(
-            Patient.psychologist_id == psychologist_id,
-            QuestionnaireCompletion.status == "completed",
-            QuestionnaireCompletion.deleted_at == None
-        )
-        q_unread_questionnaires = select(func.count(QuestionnaireCompletion.id)).join(
-            Patient, QuestionnaireCompletion.patient_id == Patient.id
-        ).where(
-            Patient.psychologist_id == psychologist_id,
-            QuestionnaireCompletion.status == "completed",
-            QuestionnaireCompletion.read_by_therapist == False,
-            QuestionnaireCompletion.deleted_at == None
-        )
-        q_pending_questionnaires = q_pending_questionnaires.join(Patient).where(Patient.psychologist_id == psychologist_id)
+        q_completed_questionnaires = q_completed_questionnaires.where(Patient.psychologist_id == psychologist_id)
+        q_unread_questionnaires = q_unread_questionnaires.where(Patient.psychologist_id == psychologist_id)
+        q_pending_questionnaires = q_pending_questionnaires.where(Patient.psychologist_id == psychologist_id)
     
     completed_questionnaires_count = session.exec(q_completed_questionnaires).one()
     unread_questionnaires_count = session.exec(q_unread_questionnaires).one()
@@ -134,7 +131,11 @@ def get_dashboard_stats(
     pending_count = len([a for a in pending_questionnaires_list if a.status != "completed"])
 
     # Online Patients Count - Filter using the 120s window logic from the model
-    q_online_base = select(Patient).where(Patient.is_online == True, Patient.deleted_at == None)
+    q_online_base = select(Patient).where(
+        Patient.is_online == True, 
+        Patient.deleted_at == None,
+        Patient.is_ia_patient != True
+    )
     if psychologist_id:
         q_online_base = q_online_base.where(Patient.psychologist_id == psychologist_id)
     
@@ -146,7 +147,8 @@ def get_dashboard_stats(
     q_unread_messages = select(func.count(Message.id)).join(Patient).where(
         Message.is_from_patient == True,
         Message.read == False,
-        Message.deleted_at == None
+        Message.deleted_at == None,
+        Patient.is_ia_patient != True
     )
     if psychologist_id:
         q_unread_messages = q_unread_messages.where(Patient.psychologist_id == psychologist_id)
@@ -154,11 +156,12 @@ def get_dashboard_stats(
     unread_messages_count = session.exec(q_unread_messages).one()
 
     # Open Sessions (Number of chats with messages)
-    q_open_sessions = select(func.count(func.distinct(Message.patient_id))).where(
-        Message.deleted_at == None
+    q_open_sessions = select(func.count(func.distinct(Message.patient_id))).join(Patient).where(
+        Message.deleted_at == None,
+        Patient.is_ia_patient != True
     )
     if psychologist_id:
-        q_open_sessions = q_open_sessions.join(Patient).where(Patient.psychologist_id == psychologist_id)
+        q_open_sessions = q_open_sessions.where(Patient.psychologist_id == psychologist_id)
     
     open_sessions_count = session.exec(q_open_sessions).one()
 
@@ -174,7 +177,11 @@ def get_dashboard_stats(
         Message, Patient.id == Message.patient_id
     ).join(
         last_msg_subq, Message.id == last_msg_subq.c.max_id
-    ).where(Message.is_from_patient == True, Patient.deleted_at == None)
+    ).where(
+        Message.is_from_patient == True, 
+        Patient.deleted_at == None,
+        Patient.is_ia_patient != True
+    )
     
     if psychologist_id:
         q_unanswered_patients = q_unanswered_patients.where(Patient.psychologist_id == psychologist_id)
@@ -186,7 +193,8 @@ def get_dashboard_stats(
     # AI Statistics
     q_base_psychologist_msgs = select(Message).join(Patient).where(
         Message.is_from_patient == False,
-        Message.deleted_at == None
+        Message.deleted_at == None,
+        Patient.is_ia_patient != True
     )
     if psychologist_id:
         q_base_psychologist_msgs = q_base_psychologist_msgs.where(Patient.psychologist_id == psychologist_id)
@@ -200,7 +208,10 @@ def get_dashboard_stats(
     manual_count = total_sent_messages - ai_generated_count
 
     # --- ADDED: Include stats from Saved Sessions ---
-    q_sessions = select(TherapySession).where(TherapySession.deleted_at == None)
+    q_sessions = select(TherapySession).join(Patient).where(
+        TherapySession.deleted_at == None,
+        Patient.is_ia_patient != True
+    )
     if psychologist_id:
         q_sessions = q_sessions.where(TherapySession.psychologist_id == psychologist_id)
     
