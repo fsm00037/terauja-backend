@@ -45,7 +45,7 @@ def create_message(
         psychologist_id=psych_id,
         # Registramos si vino de una IA
         ai_suggestion_log_id=message.ai_suggestion_log_id,
-        used_ai_suggestion=True if message.ai_suggestion_log_id else False,
+        used_ai_suggestion=True if message.selected_option is not None else False,
         was_edited_by_human=message.was_edited_by_human,
     )
     
@@ -72,7 +72,7 @@ def create_message(
         details={
             "patient_id": message.patient_id, 
             "is_from_patient": message.is_from_patient,
-            "ai_used": bool(message.ai_suggestion_log_id)
+            "ai_used": message.selected_option is not None
         }
     )
     
