@@ -430,6 +430,9 @@ class AISuggestionLog(SQLModel, table=True):
     
     suggested_strategies: Optional[str] = None
     selected_strategy: Optional[str] = None
+    
+    # Para saber si fue una regeneración de una sugerencia anterior
+    parent_log_id: Optional[int] = Field(default=None, foreign_key="aisuggestionlog.id")
 
     # Metadatos
     created_at: datetime = Field(default_factory=datetime.utcnow)

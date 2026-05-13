@@ -20,6 +20,7 @@ class ChatContext(BaseModel):
     temporary_instructions: str = ""
     previous_session_summary: str = ""
     suggested_strategies: Optional[List[str]] = None
+    parent_log_id: Optional[int] = None
 
 from models import AISuggestionLog
 
@@ -109,7 +110,8 @@ async def get_chat_recommendations_stream(
                             raw_options=json.dumps(final_options),
                             models_used=json.dumps(models_used) if models_used else None,
                             suggested_strategies=json.dumps(strategies) if strategies else None,
-                            selected_strategy=context.temporary_instructions if context.temporary_instructions else None
+                            selected_strategy=context.temporary_instructions if context.temporary_instructions else None,
+                            parent_log_id=context.parent_log_id
                         )
                         session.add(new_ai_log)
                         session.commit()
@@ -205,7 +207,8 @@ async def get_chat_recommendations(
             raw_options=result["raw_options"],
             models_used=json.dumps(result.get("models_used", [])) if result.get("models_used") else None,
             suggested_strategies=json.dumps(strategies) if strategies else None,
-            selected_strategy=context.temporary_instructions if context.temporary_instructions else None
+            selected_strategy=context.temporary_instructions if context.temporary_instructions else None,
+            parent_log_id=context.parent_log_id
         )
         
         session.add(new_ai_log)
