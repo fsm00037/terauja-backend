@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from database import get_session
@@ -19,6 +19,7 @@ class ChatContext(BaseModel):
     patient_id: int
     temporary_instructions: str = ""
     previous_session_summary: str = ""
+    suggested_strategies: Optional[List[str]] = None
 
 from models import AISuggestionLog
 
@@ -66,6 +67,10 @@ async def get_chat_recommendations_stream(
     messages = context.messages
 
     async def event_generator():
+        strategy_task = None
+        if not context.suggested_strategies:
+            strategy_task = asyncio.create_task(generate_strategy_options(messages, context.previous_session_summary))
+
         final_options = []
         try:
             async for event in generate_response_options_stream(
@@ -80,6 +85,16 @@ async def get_chat_recommendations_stream(
 
                 elif event["type"] == "done":
                     final_options = event["options"]
+                    models_used = event.get("models_used", [])
+                    
+                    strategies = context.suggested_strategies
+                    if strategy_task:
+                        try:
+                            strategies = await strategy_task
+                        except Exception as e:
+                            logger.error(f"Error awaiting strategy task: {e}")
+                            strategies = []
+                            
                     # Guardar en BD
                     try:
                         new_ai_log = AISuggestionLog(
@@ -91,7 +106,10 @@ async def get_chat_recommendations_stream(
                             suggestion_model1=final_options[0] if len(final_options) > 0 else "",
                             suggestion_model2=final_options[1] if len(final_options) > 1 else "",
                             suggestion_model3=final_options[2] if len(final_options) > 2 else "",
-                            raw_options=json.dumps(final_options)
+                            raw_options=json.dumps(final_options),
+                            models_used=json.dumps(models_used) if models_used else None,
+                            suggested_strategies=json.dumps(strategies) if strategies else None,
+                            selected_strategy=context.temporary_instructions if context.temporary_instructions else None
                         )
                         session.add(new_ai_log)
                         session.commit()
@@ -155,12 +173,26 @@ async def get_chat_recommendations(
         if context.previous_session_summary:
             combined_instructions += f"\n\n=== RESUMEN DE LA SESIÓN ANTERIOR (CONTEXTO) ===\n{context.previous_session_summary}"
 
+        # Start strategy task in parallel if needed
+        strategy_task = None
+        if not context.suggested_strategies:
+            strategy_task = asyncio.create_task(generate_strategy_options(context.messages, context.previous_session_summary))
+
         result = await generate_response_options(
             context.messages,
             therapist_style=therapist.ai_style,
             therapist_tone=therapist.ai_tone,
             therapist_instructions=combined_instructions
         )
+        
+        strategies = context.suggested_strategies
+        if strategy_task:
+            try:
+                strategies = await strategy_task
+            except Exception as e:
+                logger.error(f"Error awaiting strategy task: {e}")
+                strategies = []
+
         new_ai_log = AISuggestionLog(
             patient_id=context.patient_id,
             psychologist_id=therapist.id,
@@ -170,7 +202,10 @@ async def get_chat_recommendations(
             suggestion_model1=result["options"][0] or "",
             suggestion_model2=result["options"][1] or "",
             suggestion_model3=result["options"][2] or "",
-            raw_options=result["raw_options"]
+            raw_options=result["raw_options"],
+            models_used=json.dumps(result.get("models_used", [])) if result.get("models_used") else None,
+            suggested_strategies=json.dumps(strategies) if strategies else None,
+            selected_strategy=context.temporary_instructions if context.temporary_instructions else None
         )
         
         session.add(new_ai_log)

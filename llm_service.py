@@ -25,6 +25,8 @@ client = AsyncOpenAI(
     base_url=os.getenv("BASE_URL_MODELS_PSICOUJA")
 )
 
+CURRENT_MODELS = ["ALIA-psicouja_model", "Qwen3.5-9B", "gemma-4-E4B-it"]
+
 # Límite de tokens para el contexto
 MAX_TOKENS = 8192
 # Reservar tokens para la respuesta del modelo
@@ -406,7 +408,7 @@ async def generate_response_options_stream(chat_history, therapist_style=None, t
             final_options[i] = fallback_messages[i]
 
     logger.info("--- PARALLEL LLM calls completed ---")
-    yield {"type": "done", "options": final_options}
+    yield {"type": "done", "options": final_options, "models_used": CURRENT_MODELS}
 
 
 async def generate_response_options(chat_history, therapist_style=None, therapist_tone=None, therapist_instructions=None):
@@ -461,7 +463,8 @@ async def generate_response_options(chat_history, therapist_style=None, therapis
         logger.info("--- PARALLEL LLM calls completed ---")
         return {
             "options": options,
-            "raw_options": "Output Model 1: " + str(raw_results[0]) + "\nOutput Model 2: " + str(raw_results[1]) + "\nOutput Model 3: " + str(raw_results[2])
+            "raw_options": "Output Model 1: " + str(raw_results[0]) + "\nOutput Model 2: " + str(raw_results[1]) + "\nOutput Model 3: " + str(raw_results[2]),
+            "models_used": CURRENT_MODELS
         }
 
     except Exception as e:

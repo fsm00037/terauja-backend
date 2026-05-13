@@ -426,6 +426,10 @@ class AISuggestionLog(SQLModel, table=True):
     suggestion_model3: str
     
     raw_options: Optional[str] = None
+    models_used: Optional[str] = None
+    
+    suggested_strategies: Optional[str] = None
+    selected_strategy: Optional[str] = None
 
     # Metadatos
     created_at: datetime = Field(default_factory=datetime.utcnow)
