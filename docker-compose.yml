@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: psicouja-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-psicouja}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psicouja_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-psicouja}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-psicouja} -d ${POSTGRES_DB:-psicouja}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Servicio de backups automáticos periódicos
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    container_name: psicouja-postgres-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backups:/backups
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-psicouja}
+      - POSTGRES_USER=${POSTGRES_USER:-psicouja}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-psicouja_secret}
+      - POSTGRES_EXTRA_OPTS=-Fc --no-owner
+      - SCHEDULE=@daily           # Ejecutar automáticamente todos los días a medianoche
+      - BACKUP_KEEP_DAYS=7        # Conservar solo los últimos 7 días de backups (autolimpieza)
+      - BACKUP_SUFFIX=.dump
+
+volumes:
+  pgdata:
+    driver: local
