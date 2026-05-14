@@ -24,4 +24,5 @@ venv
 psicouja-b1ef9-firebase-adminsdk-fbsvc-cd3f93d439.json
 
 
-cache/
+cache/
+sessions_export*.jsonl
